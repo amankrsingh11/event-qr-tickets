@@ -26,6 +26,8 @@ TOTAL_CAPACITY = 200
 # ---------------------------------------------------------------------------
 
 USE_REDIS = bool(os.environ.get("UPSTASH_REDIS_REST_URL"))
+IS_VERCEL = bool(os.environ.get("VERCEL"))
+LOCAL_DATA_DIR = "/tmp/app_data" if IS_VERCEL else DATA_DIR
 
 _redis_client = None
 
@@ -58,28 +60,28 @@ def load_registrations():
     if USE_REDIS:
         raw = _get_redis().get("registrations")
         return json.loads(raw) if raw else {}
-    return _load_json_file(os.path.join(DATA_DIR, "registrations.json"))
+    return _load_json_file(os.path.join(LOCAL_DATA_DIR, "registrations.json"))
 
 
 def save_registrations(registrations):
     if USE_REDIS:
         _get_redis().set("registrations", json.dumps(registrations, ensure_ascii=False))
     else:
-        _save_json_file(os.path.join(DATA_DIR, "registrations.json"), registrations)
+        _save_json_file(os.path.join(LOCAL_DATA_DIR, "registrations.json"), registrations)
 
 
 def load_used_tickets():
     if USE_REDIS:
         raw = _get_redis().get("used_tickets")
         return json.loads(raw) if raw else {}
-    return _load_json_file(os.path.join(DATA_DIR, "used_tickets.json"))
+    return _load_json_file(os.path.join(LOCAL_DATA_DIR, "used_tickets.json"))
 
 
 def save_used_tickets(used_tickets):
     if USE_REDIS:
         _get_redis().set("used_tickets", json.dumps(used_tickets))
     else:
-        _save_json_file(os.path.join(DATA_DIR, "used_tickets.json"), used_tickets)
+        _save_json_file(os.path.join(LOCAL_DATA_DIR, "used_tickets.json"), used_tickets)
 
 
 # ---------------------------------------------------------------------------
