@@ -668,7 +668,7 @@ WA_LOGIN_HTML = """
     display: inline-block;
     margin-bottom: 20px;
   }
-  #qr-canvas canvas { display: block; }
+  #qr-canvas canvas { display: block; width: 300px !important; height: 300px !important; }
   .status { font-size: 0.9rem; color: #10b981; }
   .status.waiting { color: #f59e0b; }
   .steps { text-align: left; margin-top: 20px; font-size: 0.85rem; color: #9ca3af; line-height: 1.8; }
@@ -695,7 +695,7 @@ async function fetchQR() {
     const data = await resp.json();
     if (data.status === 'ok' && data.qr) {
       document.getElementById('qr-canvas').innerHTML = '';
-      QRCode.toCanvas(data.qr, { width: 280, margin: 2 }, function(err, canvas) {
+      QRCode.toCanvas(data.qr, { width: 400, margin: 3 }, function(err, canvas) {
         if (!err) document.getElementById('qr-canvas').appendChild(canvas);
       });
       document.getElementById('status').textContent = 'Waiting for scan...';
