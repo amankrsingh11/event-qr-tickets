@@ -32,6 +32,7 @@ if (process.env.RESET_WA_SESSION === "true" && fs.existsSync(AUTH_DIR)) {
 let sock = null;
 let latestQr = null;
 let latestQrPng = null;
+let botStatus = "starting"; // starting, waiting_qr, connected, disconnected
 
 // ── Connect to WhatsApp ───────────────────────────────────────
 async function startBot() {
@@ -54,6 +55,7 @@ async function startBot() {
 
     if (qr) {
       latestQr = qr;
+      botStatus = "waiting_qr";
       try {
         latestQrPng = await QRCode.toBuffer(qr, { width: 400, margin: 3 });
       } catch (e) {
@@ -69,15 +71,19 @@ async function startBot() {
     if (connection === "close") {
       const code = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = code !== DisconnectReason.loggedOut;
+      botStatus = "disconnected";
+      latestQr = null;
+      latestQrPng = null;
       console.log(`⚠ Connection closed (code ${code}). Reconnect: ${shouldReconnect}`);
       if (shouldReconnect) {
-        setTimeout(startBot, 3000);
+        setTimeout(startBot, 5000);
       }
     }
 
     if (connection === "open") {
       latestQr = null;
       latestQrPng = null;
+      botStatus = "connected";
       console.log("\n✔  WhatsApp Bot is CONNECTED!");
       console.log(`   Base URL: ${BASE_URL}`);
       console.log("   Waiting for messages...\n");
@@ -156,22 +162,21 @@ api.post("/send-qr", async (req, res) => {
 });
 
 api.get("/health", (req, res) => {
-  const connected = sock?.user ? true : false;
-  res.json({ status: "ok", whatsapp: connected ? "connected" : "disconnected" });
+  res.json({ status: "ok", whatsapp: botStatus });
 });
 
 api.get("/wa-qr", (req, res) => {
-  if (!latestQr) {
-    return res.json({ status: "no_qr", message: "Already connected or no QR yet" });
+  if (latestQr) {
+    return res.json({ status: "ok", qr: latestQr, botStatus });
   }
-  res.json({ status: "ok", qr: latestQr });
+  res.json({ status: "no_qr", botStatus });
 });
 
 api.get("/wa-qr-png", (req, res) => {
   if (latestQrPng) {
     return res.set("Content-Type", "image/png").send(latestQrPng);
   }
-  res.status(404).json({ status: "no_qr" });
+  res.json({ status: botStatus })
 });
 
 // ── Start ─────────────────────────────────────────────────────

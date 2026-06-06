@@ -699,18 +699,24 @@ async function fetchQR() {
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
         document.getElementById('qr-canvas').innerHTML = '<img src="' + url + '" alt="WhatsApp QR Code">';
-        document.getElementById('status').textContent = 'Waiting for scan...';
+        document.getElementById('status').textContent = 'Scan this QR with WhatsApp!';
         document.getElementById('status').className = 'status waiting';
         setTimeout(fetchQR, 15000);
       } else {
         const data = await resp.json();
         if (data.status === 'connected') {
           document.getElementById('qr-canvas').innerHTML = '<div style="padding:60px;color:#10b981;font-size:4rem;">&#10003;</div>';
-          document.getElementById('status').textContent = 'Bot is connected!';
+          document.getElementById('status').textContent = 'Bot is connected! Send "Hi" to test.';
           document.getElementById('status').className = 'status';
           setTimeout(fetchQR, 10000);
+        } else if (data.status === 'disconnected') {
+          document.getElementById('qr-canvas').innerHTML = '<div style="padding:60px;color:#f59e0b;font-size:3rem;">⟳</div>';
+          document.getElementById('status').textContent = 'Reconnecting... QR will appear shortly.';
+          document.getElementById('status').className = 'status waiting';
+          setTimeout(fetchQR, 3000);
         } else {
-          document.getElementById('status').textContent = 'Waiting for bot to generate QR...';
+          document.getElementById('status').textContent = 'Starting bot... please wait.';
+          document.getElementById('status').className = 'status waiting';
           setTimeout(fetchQR, 3000);
         }
       }
@@ -748,16 +754,15 @@ def wa_qr_proxy():
 
 @app.route("/api/wa-qr-image")
 def wa_qr_image():
-    """Get QR PNG directly from the bot."""
+    """Get QR PNG or status from the bot."""
     try:
         resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr-png", timeout=5)
-        if resp.status == 200:
-            return resp.read(), 200, {"Content-Type": "image/png"}
-        return jsonify({"status": "connected"})
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return jsonify({"status": "connected"})
-        return jsonify({"status": "error"})
+        content_type = resp.headers.get("Content-Type", "")
+        data = resp.read()
+        if "image/png" in content_type:
+            return data, 200, {"Content-Type": "image/png"}
+        result = json.loads(data)
+        return jsonify(result)
     except Exception:
         return jsonify({"status": "error", "message": "Bot not reachable"})
 
