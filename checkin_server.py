@@ -619,13 +619,15 @@ body::before{
   display:flex;align-items:center;justify-content:center;gap:8px;
 }
 .housefull{
-  background:linear-gradient(135deg,rgba(183,28,28,0.2),rgba(198,40,40,0.1));
-  border:2px solid rgba(255,80,80,0.3);border-radius:16px;
-  padding:24px;text-align:center;margin-bottom:20px;
+  background:linear-gradient(135deg,rgba(183,28,28,0.15),rgba(198,40,40,0.08));
+  border:1.5px solid rgba(255,80,80,0.25);border-radius:12px;
+  padding:14px 16px;text-align:center;margin-bottom:16px;
+  display:flex;align-items:center;gap:12px;
 }
-.housefull .hf-icon{font-size:2.8rem;margin-bottom:8px;}
-.housefull .hf-title{font-size:1.3rem;font-weight:800;color:#ff6b6b;margin-bottom:6px;letter-spacing:2px;}
-.housefull .hf-sub{font-size:0.85rem;color:rgba(255,255,255,0.55);line-height:1.5;}
+.housefull .hf-icon{font-size:1.6rem;flex-shrink:0;}
+.housefull .hf-text{text-align:left;}
+.housefull .hf-title{font-size:0.92rem;font-weight:700;color:#ff6b6b;margin-bottom:2px;letter-spacing:1px;}
+.housefull .hf-sub{font-size:0.78rem;color:rgba(255,255,255,0.45);line-height:1.4;}
 .form-section{margin-top:4px;}
 .form-group{margin-bottom:14px;position:relative;}
 .form-group label{
@@ -745,8 +747,10 @@ body::before{
   {% if spots_left <= 0 %}
   <div class="housefull">
     <div class="hf-icon">&#x1F6AB;</div>
-    <div class="hf-title" data-en="HOUSEFULL" data-hi="हाउसफुल">HOUSEFULL</div>
-    <div class="hf-sub" data-en="All seats for today's Katha have been booked.<br>Please try again tomorrow." data-hi="आज की कथा की सभी सीटें बुक हो चुकी हैं।<br>कृपया कल पुनः प्रयास करें।">All seats for today's Katha have been booked.<br>Please try again tomorrow.</div>
+    <div class="hf-text">
+      <div class="hf-title" data-en="HOUSEFULL" data-hi="हाउसफुल">HOUSEFULL</div>
+      <div class="hf-sub" data-en="All seats for today have been booked. Try again tomorrow." data-hi="आज की सभी सीटें बुक हो चुकी हैं। कल पुनः प्रयास करें।">All seats for today have been booked. Try again tomorrow.</div>
+    </div>
   </div>
   {% endif %}
 
