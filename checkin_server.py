@@ -553,6 +553,33 @@ SUCCESS_HTML = """
     color: #166534;
     margin-top: 20px;
   }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn-download, .btn-share {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-download {
+    background: #1a1a2e;
+    color: #fff;
+  }
+  .btn-share {
+    background: #25D366;
+    color: #fff;
+  }
 </style>
 </head>
 <body>
@@ -565,8 +592,12 @@ SUCCESS_HTML = """
     {% for t in tickets %}
     <div class="qr-box">
       <div class="qr-label">Attendee {{ loop.index }} of {{ attendees }} &mdash; Ticket #{{ '%03d' % t.serial }}</div>
-      <img src="/qr-image/{{ t.serial }}" alt="QR Ticket #{{ t.serial }}">
+      <img src="/qr-image/{{ t.serial }}" alt="QR Ticket #{{ t.serial }}" id="qr-{{ t.serial }}">
       <div class="ticket-id">{{ t.ticket_id }}</div>
+      <div class="btn-row">
+        <a class="btn-download" href="/qr-image/{{ t.serial }}" download="ticket_{{ '%03d' % t.serial }}.png">&#11015; Download</a>
+        <button class="btn-share" onclick="shareQR({{ t.serial }}, '{{ '%03d' % t.serial }}')">&#9993; Share</button>
+      </div>
     </div>
     {% endfor %}
   </div>
@@ -577,9 +608,30 @@ SUCCESS_HTML = """
   </div>
 
   <div class="wa-notice">
-    Screenshot {{ 'these QR codes' if attendees|int > 1 else 'this QR code' }} now! Each person shows their own QR at the door. One-time use only!
+    Download or share your QR {{ 'codes' if attendees|int > 1 else 'code' }}. Each person shows their own QR at the door. One-time use only!
   </div>
 </div>
+<script>
+async function shareQR(serial, serialStr) {
+  const imgUrl = '/qr-image/' + serial;
+  try {
+    const resp = await fetch(imgUrl);
+    const blob = await resp.blob();
+    const file = new File([blob], 'ticket_' + serialStr + '.png', { type: 'image/png' });
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: 'Event Entry Ticket #' + serialStr,
+        text: 'Here is your event entry QR ticket. Show this at the door!',
+        files: [file]
+      });
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent('Here is my event ticket #' + serialStr + '. QR: ' + window.location.origin + imgUrl), '_blank');
+    }
+  } catch (e) {
+    window.open('https://wa.me/?text=' + encodeURIComponent('Here is my event ticket #' + serialStr + '. QR: ' + window.location.origin + '/qr-image/' + serial), '_blank');
+  }
+}
+</script>
 </body>
 </html>
 """
