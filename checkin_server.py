@@ -153,6 +153,20 @@ def sheet_append_registration(date_str, name, phone, attendees, invitee_name, ti
     except Exception as e:
         print(f"Google Sheets (registration) error: {e}", flush=True)
 
+def sheet_append_update(date_str, name, phone, old_attendees, new_attendees, invitee_name, ticket_serials):
+    if not GOOGLE_SHEETS_ENABLED:
+        return
+    try:
+        gc = _get_gspread()
+        sh = gc.open_by_key(GOOGLE_SHEET_ID)
+        ws = _get_or_create_worksheet(sh, "Registrations",
+            ["Date", "Time", "Name", "Phone", "Attendees", "Invitee Name", "Tickets"])
+        time_str = now_ist().strftime("%I:%M %p")
+        serials_str = ", ".join(f"#{s:03d}" for s in ticket_serials)
+        ws.append_row([date_str, time_str + " (UPDATE)", name, phone, f"{old_attendees} -> {new_attendees}", invitee_name, serials_str])
+    except Exception as e:
+        print(f"Google Sheets (update) error: {e}", flush=True)
+
 def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone):
     if not GOOGLE_SHEETS_ENABLED:
         return
@@ -527,7 +541,7 @@ body::before{
              radial-gradient(ellipse at 80% 80%,rgba(139,26,26,0.1) 0%,transparent 50%);
   pointer-events:none;
 }
-.page{position:relative;z-index:1;width:100%;max-width:460px;}
+.page{position:relative;z-index:1;width:100%;max-width:560px;}
 .lang-toggle{display:flex;justify-content:flex-end;margin-bottom:10px;}
 .lang-btn{
   padding:6px 16px;border:1.5px solid rgba(255,165,0,0.4);font-size:0.75rem;
@@ -1497,7 +1511,7 @@ body::before{
              radial-gradient(ellipse at 80% 80%,rgba(139,26,26,0.1) 0%,transparent 50%);
   pointer-events:none;
 }
-.page{position:relative;z-index:1;width:100%;max-width:460px;}
+.page{position:relative;z-index:1;width:100%;max-width:560px;}
 .lang-toggle{display:flex;justify-content:flex-end;margin-bottom:10px;}
 .lang-btn{
   padding:6px 16px;border:1.5px solid rgba(255,165,0,0.4);font-size:0.75rem;
@@ -1744,6 +1758,8 @@ def update_registration():
     registrations[phone] = reg
     save_registrations(date_str, registrations)
     print(f"Updated registration: {reg['name']} ({phone}) -> {new_attendees} attendees [{date_str}]", flush=True)
+    ticket_serials = [t["serial"] for t in reg["tickets"]]
+    sheet_append_update(date_str, reg["name"], phone, old_attendees, new_attendees, reg["invitee_name"], ticket_serials)
 
     return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
         error=None, success="Registration updated successfully!")
