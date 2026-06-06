@@ -839,7 +839,7 @@ body::before{
              radial-gradient(ellipse at 80% 80%,rgba(255,140,0,0.06) 0%,transparent 50%);
   pointer-events:none;
 }
-.page{position:relative;z-index:1;width:100%;max-width:560px;}
+.page{position:relative;z-index:1;width:100%;max-width:720px;}
 .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .nav-links{display:flex;gap:6px;}
 .nav-links a{
@@ -888,10 +888,10 @@ h1{font-family:'Playfair Display',serif;font-size:1.35rem;color:#81C784;margin-b
   padding:10px;font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:16px;line-height:1.5;
 }
 .venue-info strong{color:#FFD700;}
-.qr-section{margin-bottom:16px;}
+.qr-section{margin-bottom:16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}
 .qr-box{
   background:rgba(255,255,255,0.04);border:1px solid rgba(255,165,0,0.15);border-radius:16px;
-  padding:20px;margin-bottom:12px;
+  padding:20px;flex:1;min-width:240px;max-width:340px;
 }
 .qr-box img{width:180px;height:180px;border-radius:8px;}
 .qr-label{font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px;}
@@ -949,13 +949,20 @@ h1{font-family:'Playfair Display',serif;font-size:1.35rem;color:#81C784;margin-b
   transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;
 }
 .action-link:hover{border-color:rgba(255,165,0,0.3);color:#FFD700;background:rgba(255,165,0,0.06);}
+@media(min-width:600px){
+  .card{padding:36px 32px;}
+  .qr-box img{width:200px;height:200px;}
+}
 @media(max-width:480px){
   .card{padding:24px 16px;border-radius:20px;}
   h1{font-size:1.15rem;}
+  .qr-section{flex-direction:column;align-items:stretch;}
+  .qr-box{max-width:none;min-width:unset;}
   .qr-box img{width:160px;height:160px;}
   .btn-all{padding:12px 18px;font-size:0.82rem;}
   .action-links{flex-direction:column;}
   .nav-links a{padding:5px 10px;font-size:0.7rem;}
+  .top-bar{flex-direction:column;gap:8px;}
 }
 </style>
 </head>
