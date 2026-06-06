@@ -1,0 +1,4 @@
+qrcode[pil]
+reportlab
+Pillow
+flask

@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+node_modules/
+bot/wa_session/
+output/used_tickets.json
+output/registrations.json
+output/qr_images/
+output/qr_samples/
+output/event_tickets.pdf
+.DS_Store
+bot/.wwebjs_cache/
