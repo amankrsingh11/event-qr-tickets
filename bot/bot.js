@@ -23,7 +23,7 @@ const BASE_URL = PUBLIC_DOMAIN
 // Use a versioned auth dir so we can force a fresh session by bumping the version
 const AUTH_VERSION = process.env.WA_AUTH_VERSION || "v2";
 const AUTH_DIR = path.resolve(__dirname, "wa_session", `auth_${AUTH_VERSION}`);
-const logger = pino({ level: "warn" });
+const logger = pino({ level: "info" });
 
 console.log(`Auth dir: ${AUTH_DIR}`);
 
@@ -45,6 +45,7 @@ async function startBot() {
     },
     printQRInTerminal: false,
     logger,
+    browser: ["Event Bot", "Chrome", "1.0.0"],
   });
 
   sock.ev.on("creds.update", saveCreds);
@@ -68,13 +69,20 @@ async function startBot() {
     }
 
     if (connection === "close") {
-      const code = lastDisconnect?.error?.output?.statusCode;
+      const err = lastDisconnect?.error;
+      const code = err?.output?.statusCode;
       const shouldReconnect = code !== DisconnectReason.loggedOut;
       botStatus = "disconnected";
       latestQr = null;
       latestQrPng = null;
       console.log(`⚠ Connection closed (code ${code}). Reconnect: ${shouldReconnect}`);
-      if (shouldReconnect) {
+      console.log(`  Error details: ${err?.message || "none"}`);
+      if (code === 405) {
+        console.log("  405 = Conflict. Clearing auth and starting fresh...");
+        fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+        fs.mkdirSync(AUTH_DIR, { recursive: true });
+        setTimeout(startBot, 10000);
+      } else if (shouldReconnect) {
         setTimeout(startBot, 5000);
       }
     }
