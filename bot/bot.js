@@ -33,14 +33,19 @@ const client = new Client({
   },
 });
 
+let latestQr = null;
+
 client.on("qr", (qr) => {
+  latestQr = qr;
   console.log("\n╔══════════════════════════════════════════════╗");
   console.log("║  Scan this QR code with your WhatsApp phone  ║");
+  console.log("║  Or open /wa-login on the server to scan      ║");
   console.log("╚══════════════════════════════════════════════╝\n");
   qrcode.generate(qr, { small: true });
 });
 
 client.on("ready", () => {
+  latestQr = null;
   console.log("\n✔  WhatsApp Bot is READY and connected!");
   console.log(`   Bot API running on http://localhost:${BOT_API_PORT}`);
   console.log("   Waiting for messages...\n");
@@ -116,6 +121,13 @@ api.post("/send-qr", async (req, res) => {
 api.get("/health", (req, res) => {
   const state = client.info ? "connected" : "disconnected";
   res.json({ status: "ok", whatsapp: state });
+});
+
+api.get("/wa-qr", (req, res) => {
+  if (!latestQr) {
+    return res.json({ status: "no_qr", message: "Already connected or no QR generated yet" });
+  }
+  res.json({ status: "ok", qr: latestQr });
 });
 
 // ── Start everything ──────────────────────────────────────────

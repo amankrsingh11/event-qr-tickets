@@ -630,6 +630,111 @@ def notify_bot(phone, tickets_data, name):
             print(f"  Bot delivery #{t['serial']:03d} failed (QR still shown on web): {e}")
 
 
+WA_LOGIN_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Bot Login</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f1a;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #1a1a2e;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  h1 { font-size: 1.3rem; margin-bottom: 8px; }
+  .subtitle { color: #9ca3af; font-size: 0.9rem; margin-bottom: 24px; }
+  #qr-canvas {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    display: inline-block;
+    margin-bottom: 20px;
+  }
+  #qr-canvas canvas { display: block; }
+  .status { font-size: 0.9rem; color: #10b981; }
+  .status.waiting { color: #f59e0b; }
+  .steps { text-align: left; margin-top: 20px; font-size: 0.85rem; color: #9ca3af; line-height: 1.8; }
+  .steps b { color: #fff; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Link WhatsApp to Bot</h1>
+  <p class="subtitle">Scan this QR code with your phone</p>
+  <div id="qr-canvas"></div>
+  <div class="status waiting" id="status">Loading QR code...</div>
+  <div class="steps">
+    <b>1.</b> Open WhatsApp on your phone<br>
+    <b>2.</b> Go to Settings &rarr; Linked Devices<br>
+    <b>3.</b> Tap "Link a Device"<br>
+    <b>4.</b> Scan the QR code above
+  </div>
+</div>
+<script>
+async function fetchQR() {
+  try {
+    const resp = await fetch('/api/wa-qr');
+    const data = await resp.json();
+    if (data.status === 'ok' && data.qr) {
+      document.getElementById('qr-canvas').innerHTML = '';
+      QRCode.toCanvas(data.qr, { width: 280, margin: 2 }, function(err, canvas) {
+        if (!err) document.getElementById('qr-canvas').appendChild(canvas);
+      });
+      document.getElementById('status').textContent = 'Waiting for scan...';
+      document.getElementById('status').className = 'status waiting';
+      setTimeout(fetchQR, 20000);
+    } else {
+      document.getElementById('qr-canvas').innerHTML = '<div style="padding:40px;color:#10b981;font-size:3rem;">&#10003;</div>';
+      document.getElementById('status').textContent = 'Bot is connected!';
+      document.getElementById('status').className = 'status';
+      setTimeout(fetchQR, 10000);
+    }
+  } catch (e) {
+    document.getElementById('status').textContent = 'Cannot reach bot. Is it running?';
+    setTimeout(fetchQR, 5000);
+  }
+}
+fetchQR();
+</script>
+</body>
+</html>
+"""
+
+
+@app.route("/wa-login")
+def wa_login():
+    return render_template_string(WA_LOGIN_HTML)
+
+
+@app.route("/api/wa-qr")
+def wa_qr_proxy():
+    """Proxy the bot's QR endpoint so the browser can access it."""
+    try:
+        resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr", timeout=5)
+        data = json.loads(resp.read())
+        return jsonify(data)
+    except Exception:
+        return jsonify({"status": "error", "message": "Bot not reachable"})
+
+
 @app.route("/")
 def index():
     return render_template_string(SCANNER_HTML)
