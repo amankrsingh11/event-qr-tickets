@@ -15,6 +15,14 @@ const BASE_URL = PUBLIC_DOMAIN
   : `http://${process.env.SERVER_HOST || "localhost"}:${FLASK_PORT}`;
 
 const GREETINGS = ["hi", "hello", "hey", "register", "start", "ticket"];
+const WA_SESSION_DIR = path.resolve(__dirname, "wa_session");
+
+// Clear session if RESET_WA_SESSION is set (allows switching WhatsApp numbers)
+if (process.env.RESET_WA_SESSION === "true" && fs.existsSync(WA_SESSION_DIR)) {
+  console.log("⚠ RESET_WA_SESSION is set — clearing old WhatsApp session...");
+  fs.rmSync(WA_SESSION_DIR, { recursive: true, force: true });
+  console.log("  Session cleared. A new QR code will appear for login.");
+}
 
 // ── WhatsApp Client ───────────────────────────────────────────
 const client = new Client({
