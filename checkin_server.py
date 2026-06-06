@@ -513,134 +513,234 @@ REGISTER_HTML = """
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Registration | Shrimad Bhagwat Katha</title>
-<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #1a0a00; background: radial-gradient(ellipse at 50% 30%, #3a1a00 0%, #1a0a00 70%);
-    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
-  }
-  .card {
-    background: rgba(255,255,255,0.07); border-radius: 20px; padding: 36px 28px;
-    width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    border-top: 5px solid #FF8C00; backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,165,0,0.15);
-  }
-  .lang-toggle {
-    display: flex; justify-content: flex-end; margin-bottom: 8px;
-  }
-  .lang-btn {
-    padding: 5px 14px; border: 2px solid rgba(255,165,0,0.5); border-radius: 20px; font-size: 0.78rem;
-    font-weight: 600; cursor: pointer; background: transparent; color: rgba(255,255,255,0.7); transition: all 0.2s;
-  }
-  .lang-btn.active { background: rgba(255,165,0,0.25); color: #FFD700; border-color: #FF8C00; }
-  .lang-btn:first-child { border-radius: 20px 0 0 20px; }
-  .lang-btn:last-child { border-radius: 0 20px 20px 0; }
-  .card-header { text-align: center; margin-bottom: 24px; }
-  .greeting {
-    font-family: 'Tiro Devanagari Hindi', serif;
-    font-size: 1.8rem; color: #FF8C00; font-weight: 700; margin-bottom: 4px;
-  }
-  .card-header h1 { font-size: 1.4rem; color: #FFD700; margin-bottom: 4px; }
-  .card-header .sub { font-size: 0.95rem; color: #FFD700; font-weight: 600; }
-  .accent-bar { width: 60px; height: 3px; background: linear-gradient(90deg, #CC5500, #FFD700); border-radius: 2px; margin: 10px auto; }
-  .venue-info {
-    background: rgba(255,165,0,0.08); border: 1px solid rgba(255,165,0,0.25); border-radius: 12px;
-    padding: 12px; margin-bottom: 20px; font-size: 0.82rem; color: rgba(255,255,255,0.7); text-align: center; line-height: 1.6;
-  }
-  .venue-info strong { color: #FFD700; }
-  .date-pill {
-    display: inline-block; padding: 5px 14px; background: rgba(255,165,0,0.15); color: #FFD700;
-    border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 8px;
-    border: 1px solid rgba(255,165,0,0.3);
-  }
-  .form-group { margin-bottom: 16px; }
-  .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.75); margin-bottom: 6px; }
-  .form-group input, .form-group select {
-    width: 100%; padding: 12px 14px; border: 2px solid rgba(255,165,0,0.3); border-radius: 10px;
-    font-size: 1rem; color: #fff; background: rgba(255,255,255,0.06); transition: border-color 0.2s; outline: none;
-  }
-  .form-group input::placeholder { color: rgba(255,255,255,0.35); }
-  .form-group select { color: rgba(255,255,255,0.85); }
-  .form-group select option { background: #2a1a0a; color: #fff; }
-  .form-group input:focus, .form-group select:focus { border-color: #FF8C00; background: rgba(255,255,255,0.1); }
-  .submit-btn {
-    width: 100%; padding: 14px;
-    background: linear-gradient(135deg, #FF8C00, #CC5500, #8B1A1A);
-    color: #fff; font-size: 1.05rem; font-weight: 700; border: none; border-radius: 12px;
-    cursor: pointer; margin-top: 8px; transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.5px;
-    box-shadow: 0 4px 20px rgba(255,140,0,0.3);
-  }
-  .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(255,140,0,0.5); }
-  .submit-btn:disabled { background: rgba(255,255,255,0.15); cursor: not-allowed; transform: none; box-shadow: none; color: rgba(255,255,255,0.4); }
-  .error-msg {
-    background: rgba(200,30,30,0.15); border: 1px solid rgba(255,100,100,0.3); color: #ff8a8a;
-    padding: 12px; border-radius: 10px; font-size: 0.9rem; margin-bottom: 18px; text-align: center;
-  }
-  .spots-left { text-align: center; margin-top: 16px; font-size: 0.85rem; color: rgba(255,255,255,0.5); }
-  .spots-left span { color: #FFD700; font-weight: 700; }
-  .housefull {
-    background: rgba(200,30,30,0.2); border: 2px solid rgba(255,80,80,0.4); border-radius: 14px;
-    padding: 20px; text-align: center; margin-bottom: 20px;
-  }
-  .housefull .hf-icon { font-size: 2.5rem; margin-bottom: 8px; }
-  .housefull .hf-title { font-size: 1.2rem; font-weight: 800; color: #ff6b6b; margin-bottom: 4px; }
-  .housefull .hf-sub { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
-  .form-group.disabled label { color: rgba(255,255,255,0.3); }
-  .form-group.disabled input, .form-group.disabled select {
-    background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.2);
-    border-color: rgba(255,165,0,0.1); pointer-events: none;
-  }
-  .link-row { text-align: center; margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,165,0,0.15); }
-  .link-row a {
-    color: #FFD700; font-size: 0.88rem; text-decoration: none; font-weight: 600;
-  }
-  .link-row a:hover { text-decoration: underline; }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#1a0a00;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 50% 20%,rgba(255,140,0,0.12) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 80%,rgba(139,26,26,0.1) 0%,transparent 50%);
+  pointer-events:none;
+}
+.page{position:relative;z-index:1;width:100%;max-width:460px;}
+.lang-toggle{display:flex;justify-content:flex-end;margin-bottom:10px;}
+.lang-btn{
+  padding:6px 16px;border:1.5px solid rgba(255,165,0,0.4);font-size:0.75rem;
+  font-weight:600;cursor:pointer;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);
+  transition:all 0.2s;backdrop-filter:blur(8px);
+}
+.lang-btn.active{background:rgba(255,165,0,0.2);color:#FFD700;border-color:#FF8C00;}
+.lang-btn:first-child{border-radius:20px 0 0 20px;}
+.lang-btn:last-child{border-radius:0 20px 20px 0;}
+.card{
+  background:linear-gradient(145deg,rgba(42,26,10,0.9),rgba(26,10,0,0.95));
+  border-radius:24px;padding:32px 24px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,165,0,0.1);
+  border:1px solid rgba(255,165,0,0.12);position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,#8B1A1A,#CC5500,#FF8C00,#FFD700,#FF8C00,#CC5500,#8B1A1A);
+}
+.card-header{text-align:center;margin-bottom:20px;}
+.om-symbol{font-size:2.2rem;margin-bottom:4px;filter:drop-shadow(0 0 12px rgba(255,140,0,0.4));}
+.greeting{
+  font-family:'Tiro Devanagari Hindi',serif;font-size:1.5rem;
+  color:#FF8C00;font-weight:700;margin-bottom:2px;
+}
+.card-header h1{
+  font-family:'Playfair Display',serif;font-size:1.35rem;color:#FFD700;
+  margin-bottom:2px;letter-spacing:0.5px;
+}
+.card-header .sub{font-size:0.88rem;color:rgba(255,215,0,0.7);font-weight:600;letter-spacing:1px;text-transform:uppercase;}
+.divider{
+  width:80px;height:2px;margin:10px auto 12px;
+  background:linear-gradient(90deg,transparent,#FF8C00,#FFD700,#FF8C00,transparent);
+}
+.date-pill{
+  display:inline-block;padding:5px 16px;background:rgba(255,165,0,0.1);color:#FFD700;
+  border-radius:20px;font-size:0.78rem;font-weight:600;
+  border:1px solid rgba(255,165,0,0.2);
+}
+.info-strip{
+  display:flex;gap:0;margin:16px 0;border-radius:14px;overflow:hidden;
+  border:1px solid rgba(255,165,0,0.15);
+}
+.info-strip .info-item{
+  flex:1;padding:12px 8px;text-align:center;
+  background:rgba(255,165,0,0.05);
+  border-right:1px solid rgba(255,165,0,0.1);
+}
+.info-strip .info-item:last-child{border-right:none;}
+.info-strip .info-icon{font-size:1.1rem;margin-bottom:3px;}
+.info-strip .info-label{font-size:0.62rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;}
+.info-strip .info-val{font-size:0.78rem;color:#FFD700;font-weight:600;line-height:1.3;}
+.capacity-bar{margin:0 0 20px;padding:0 2px;}
+.capacity-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.capacity-header .cap-label{font-size:0.75rem;color:rgba(255,255,255,0.5);}
+.capacity-header .cap-count{font-size:0.85rem;color:#FFD700;font-weight:700;}
+.bar-track{height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease;
+  background:linear-gradient(90deg,#2E7D32,#66BB6A);}
+.bar-fill.warning{background:linear-gradient(90deg,#FF8C00,#FFB74D);}
+.bar-fill.critical{background:linear-gradient(90deg,#c62828,#ef5350);}
+.bar-fill.full{background:linear-gradient(90deg,#b71c1c,#e53935);}
+.error-msg{
+  background:rgba(200,30,30,0.12);border:1px solid rgba(255,100,100,0.25);color:#ff8a8a;
+  padding:12px 16px;border-radius:12px;font-size:0.88rem;margin-bottom:16px;text-align:center;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.housefull{
+  background:linear-gradient(135deg,rgba(183,28,28,0.2),rgba(198,40,40,0.1));
+  border:2px solid rgba(255,80,80,0.3);border-radius:16px;
+  padding:24px;text-align:center;margin-bottom:20px;
+}
+.housefull .hf-icon{font-size:2.8rem;margin-bottom:8px;}
+.housefull .hf-title{font-size:1.3rem;font-weight:800;color:#ff6b6b;margin-bottom:6px;letter-spacing:2px;}
+.housefull .hf-sub{font-size:0.85rem;color:rgba(255,255,255,0.55);line-height:1.5;}
+.form-section{margin-top:4px;}
+.form-group{margin-bottom:14px;position:relative;}
+.form-group label{
+  display:flex;align-items:center;gap:6px;
+  font-size:0.82rem;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:6px;
+}
+.form-group label .field-icon{font-size:0.9rem;opacity:0.7;}
+.form-group input,.form-group select{
+  width:100%;padding:13px 14px;border:1.5px solid rgba(255,165,0,0.2);border-radius:12px;
+  font-size:0.95rem;color:#fff;background:rgba(255,255,255,0.04);
+  transition:all 0.25s ease;outline:none;
+}
+.form-group input::placeholder{color:rgba(255,255,255,0.25);}
+.form-group select{color:rgba(255,255,255,0.8);-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFD700' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5l6.5 6.5 6.5-6.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+.form-group select option{background:#2a1a0a;color:#fff;}
+.form-group input:focus,.form-group select:focus{
+  border-color:#FF8C00;background:rgba(255,255,255,0.07);
+  box-shadow:0 0 0 3px rgba(255,140,0,0.1);
+}
+.form-group.disabled label{color:rgba(255,255,255,0.2);}
+.form-group.disabled input,.form-group.disabled select{
+  background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.15);
+  border-color:rgba(255,165,0,0.06);pointer-events:none;
+}
+.submit-btn{
+  width:100%;padding:15px;margin-top:6px;
+  background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
+  color:#fff;font-size:1.05rem;font-weight:700;border:none;border-radius:14px;
+  cursor:pointer;letter-spacing:0.5px;position:relative;overflow:hidden;
+  box-shadow:0 6px 24px rgba(255,140,0,0.3);transition:all 0.2s ease;
+}
+.submit-btn::after{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+  transition:left 0.5s ease;
+}
+.submit-btn:hover::after{left:100%;}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(255,140,0,0.45);}
+.submit-btn:active{transform:translateY(0);}
+.submit-btn:disabled{
+  background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.3);
+  cursor:not-allowed;transform:none;box-shadow:none;
+}
+.submit-btn:disabled::after{display:none;}
+.footer-links{
+  margin-top:20px;padding-top:16px;
+  border-top:1px solid rgba(255,165,0,0.1);
+  text-align:center;
+}
+.footer-links a{
+  display:inline-flex;align-items:center;gap:6px;
+  color:rgba(255,215,0,0.7);font-size:0.84rem;text-decoration:none;
+  font-weight:500;padding:8px 16px;border-radius:10px;
+  transition:all 0.2s;
+}
+.footer-links a:hover{color:#FFD700;background:rgba(255,165,0,0.08);}
+@media(max-width:480px){
+  .card{padding:24px 18px;border-radius:20px;}
+  .greeting{font-size:1.3rem;}
+  .card-header h1{font-size:1.15rem;}
+  .info-strip{flex-direction:column;}
+  .info-strip .info-item{border-right:none;border-bottom:1px solid rgba(255,165,0,0.1);padding:10px;}
+  .info-strip .info-item:last-child{border-bottom:none;}
+  .submit-btn{font-size:0.95rem;padding:14px;}
+}
 </style>
 </head>
 <body>
+<div class="page">
+<div class="lang-toggle">
+  <button class="lang-btn active" onclick="setLang('en')">English</button>
+  <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
+</div>
 <div class="card">
-  <div class="lang-toggle">
-    <button class="lang-btn active" onclick="setLang('en')">English</button>
-    <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
-  </div>
   <div class="card-header">
-    <div class="greeting">&#x1F64F; <span data-en="JAI MATA DI" data-hi="जय माता दी">JAI MATA DI</span> &#x1F64F;</div>
+    <div class="om-symbol">&#x1F549;</div>
+    <div class="greeting"><span data-en="JAI MATA DI" data-hi="जय माता दी">JAI MATA DI</span></div>
     <h1 data-en="Shrimad Bhagwat Katha" data-hi="श्रीमद् भागवत कथा">Shrimad Bhagwat Katha</h1>
     <div class="sub" data-en="Registration" data-hi="पंजीकरण">Registration</div>
-    <div class="accent-bar"></div>
+    <div class="divider"></div>
     <div class="date-pill">{{ date_display }}</div>
   </div>
 
-  <div class="venue-info">
-    <span data-en="<strong>Katha Timing:</strong> 4:00 PM to 7:00 PM &mdash; Kindly reach 15-30 min earlier" data-hi="<strong>कथा समय:</strong> शाम 4:00 बजे से 7:00 बजे तक &mdash; कृपया 15-30 मिनट पहले पहुँचें"></span><br>
-    <span data-en="<strong>Venue:</strong> Gate No 3, Shri Adya Katyayani Shakti Peeth Mandir, Chhatarpur, New Delhi" data-hi="<strong>स्थान:</strong> गेट नं. 3, श्री आद्य कात्यायनी शक्ति पीठ मंदिर, छतरपुर, नई दिल्ली"></span>
+  <div class="info-strip">
+    <div class="info-item">
+      <div class="info-icon">&#x1F552;</div>
+      <div class="info-label" data-en="Timing" data-hi="समय">Timing</div>
+      <div class="info-val" data-en="4:00 - 7:00 PM" data-hi="शाम 4 - 7 बजे">4:00 - 7:00 PM</div>
+    </div>
+    <div class="info-item">
+      <div class="info-icon">&#x1F4CD;</div>
+      <div class="info-label" data-en="Venue" data-hi="स्थान">Venue</div>
+      <div class="info-val" data-en="Gate 3, Katyayani Mandir<br>Chhatarpur, Delhi" data-hi="गेट 3, कात्यायनी मंदिर<br>छतरपुर, दिल्ली">Gate 3, Katyayani Mandir<br>Chhatarpur, Delhi</div>
+    </div>
+    <div class="info-item">
+      <div class="info-icon">&#x23F0;</div>
+      <div class="info-label" data-en="Arrive" data-hi="पहुँचें">Arrive</div>
+      <div class="info-val" data-en="15-30 min<br>earlier" data-hi="15-30 मिनट<br>पहले">15-30 min<br>earlier</div>
+    </div>
   </div>
 
-  {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
+  <div class="capacity-bar">
+    <div class="capacity-header">
+      <span class="cap-label" data-en="Availability" data-hi="उपलब्धता">Availability</span>
+      <span class="cap-count"><span id="spotsNum">{{ spots_left }}</span> / {{ total }}</span>
+    </div>
+    <div class="bar-track">
+      <div class="bar-fill {% if spots_left <= 0 %}full{% elif spots_left <= total // 5 %}critical{% elif spots_left <= total // 2 %}warning{% endif %}" style="width:{{ ((total - spots_left) * 100 // total) if total > 0 else 100 }}%"></div>
+    </div>
+  </div>
+
+  {% if error %}<div class="error-msg">&#x26A0; {{ error }}</div>{% endif %}
 
   {% if spots_left <= 0 %}
   <div class="housefull">
     <div class="hf-icon">&#x1F6AB;</div>
     <div class="hf-title" data-en="HOUSEFULL" data-hi="हाउसफुल">HOUSEFULL</div>
-    <div class="hf-sub" data-en="All seats for today's Katha have been booked." data-hi="आज की कथा की सभी सीटें बुक हो चुकी हैं।">All seats for today's Katha have been booked.</div>
+    <div class="hf-sub" data-en="All seats for today's Katha have been booked.<br>Please try again tomorrow." data-hi="आज की कथा की सभी सीटें बुक हो चुकी हैं।<br>कृपया कल पुनः प्रयास करें।">All seats for today's Katha have been booked.<br>Please try again tomorrow.</div>
   </div>
   {% endif %}
 
+  <div class="form-section">
   <form method="POST" action="/register" id="regForm">
     <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
-      <label data-en="Full Name *" data-hi="पूरा नाम *">Full Name *</label>
-      <input type="text" name="name" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="Your full name" data-ph-hi="अपना पूरा नाम लिखें" placeholder="Your full name" value="{{ prev.name or '' }}">
+      <label><span class="field-icon">&#x1F464;</span> <span data-en="Full Name" data-hi="पूरा नाम">Full Name</span></label>
+      <input type="text" name="name" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="Enter your full name" data-ph-hi="अपना पूरा नाम लिखें" placeholder="Enter your full name" value="{{ prev.name or '' }}">
     </div>
     <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
-      <label data-en="Phone Number *" data-hi="फ़ोन नंबर *">Phone Number *</label>
-      <input type="tel" name="phone" {{ 'disabled' if spots_left <= 0 }} required placeholder="e.g. 9876543210" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.phone or '' }}">
+      <label><span class="field-icon">&#x1F4F1;</span> <span data-en="Phone Number" data-hi="फ़ोन नंबर">Phone Number</span></label>
+      <input type="tel" name="phone" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="10-digit mobile number" data-ph-hi="10 अंकों का मोबाइल नंबर" placeholder="10-digit mobile number" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.phone or '' }}">
     </div>
     <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
-      <label data-en="Number of Attendees * (max 5)" data-hi="उपस्थित लोगों की संख्या * (अधिकतम 5)">Number of Attendees * (max 5)</label>
+      <label><span class="field-icon">&#x1F465;</span> <span data-en="Number of Attendees (max 5)" data-hi="उपस्थित लोगों की संख्या (अधिकतम 5)">Number of Attendees (max 5)</span></label>
       <select name="attendees" {{ 'disabled' if spots_left <= 0 }} required>
-        <option value="" data-en="Select" data-hi="चुनें">Select</option>
+        <option value="" data-en="-- Select --" data-hi="-- चुनें --">-- Select --</option>
         <option value="1" {{ 'selected' if prev.attendees == '1' }}>1</option>
         <option value="2" {{ 'selected' if prev.attendees == '2' }}>2</option>
         <option value="3" {{ 'selected' if prev.attendees == '3' }}>3</option>
@@ -649,9 +749,9 @@ REGISTER_HTML = """
       </select>
     </div>
     <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
-      <label data-en="Invitee Name *" data-hi="निमंत्रणकर्ता का नाम *">Invitee Name *</label>
+      <label><span class="field-icon">&#x1F64F;</span> <span data-en="Invitee Name" data-hi="निमंत्रणकर्ता का नाम">Invitee Name</span></label>
       <select name="invitee_name" {{ 'disabled' if spots_left <= 0 }} required>
-        <option value="" data-en="Select" data-hi="चुनें">Select</option>
+        <option value="" data-en="-- Select --" data-hi="-- चुनें --">-- Select --</option>
         <option value="Arun Gupta Ji" {{ 'selected' if prev.invitee_name == 'Arun Gupta Ji' }}>Arun Gupta Ji</option>
         <option value="Sheena Aron Ji" {{ 'selected' if prev.invitee_name == 'Sheena Aron Ji' }}>Sheena Aron Ji</option>
         <option value="Ankit Ji" {{ 'selected' if prev.invitee_name == 'Ankit Ji' }}>Ankit Ji</option>
@@ -659,31 +759,33 @@ REGISTER_HTML = """
         <option value="Rama Shankar Ji" {{ 'selected' if prev.invitee_name == 'Rama Shankar Ji' }}>Rama Shankar Ji</option>
       </select>
     </div>
-    <button type="submit" class="submit-btn" id="submitBtn" {{ 'disabled' if spots_left <= 0 }} data-en="&#x1F64F; REGISTER & GET QR PASS" data-hi="&#x1F64F; पंजीकरण करें और QR पास पाएं">&#x1F64F; REGISTER & GET QR PASS</button>
+    <button type="submit" class="submit-btn" id="submitBtn" {{ 'disabled' if spots_left <= 0 }} data-en="&#x1F64F; REGISTER &amp; GET QR PASS" data-hi="&#x1F64F; पंजीकरण करें और QR पास पाएं">&#x1F64F; REGISTER &amp; GET QR PASS</button>
   </form>
-  <div class="spots-left"><span>{{ spots_left }}</span> <span data-en="spots remaining out of" data-hi="शेष, कुल में से">spots remaining out of</span> {{ total }}</div>
+  </div>
 
-  <div class="link-row">
+  <div class="footer-links">
     <a href="/my-passes" data-en="&#x1F4F1; Already registered? View your passes" data-hi="&#x1F4F1; पहले से पंजीकृत? अपने पास देखें">&#x1F4F1; Already registered? View your passes</a>
   </div>
 </div>
+</div>
 <script>
-function setLang(lang) {
-  localStorage.setItem('katha_lang', lang);
-  document.querySelectorAll('[data-en]').forEach(el => {
-    el.innerHTML = el.getAttribute('data-' + lang) || el.getAttribute('data-en');
+function setLang(lang){
+  localStorage.setItem('katha_lang',lang);
+  document.querySelectorAll('[data-en]').forEach(function(el){
+    el.innerHTML=el.getAttribute('data-'+lang)||el.getAttribute('data-en');
   });
-  document.querySelectorAll('[data-ph-en]').forEach(el => {
-    el.placeholder = el.getAttribute('data-ph-' + lang) || el.getAttribute('data-ph-en');
+  document.querySelectorAll('[data-ph-en]').forEach(function(el){
+    el.placeholder=el.getAttribute('data-ph-'+lang)||el.getAttribute('data-ph-en');
   });
-  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector('.lang-btn[onclick="setLang(\\'' + lang + '\\')"]').classList.add('active');
+  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
 }
-document.addEventListener('DOMContentLoaded', function() {
-  var lang = localStorage.getItem('katha_lang') || 'en';
-  setLang(lang);
+document.addEventListener('DOMContentLoaded',function(){
+  var lang=localStorage.getItem('katha_lang')||'en';setLang(lang);
 });
-document.getElementById('regForm').addEventListener('submit',function(){var b=document.getElementById('submitBtn');b.disabled=true;b.textContent='REGISTERING...';});
+document.getElementById('regForm').addEventListener('submit',function(){
+  var b=document.getElementById('submitBtn');b.disabled=true;b.textContent='REGISTERING...';
+});
 </script>
 </body>
 </html>
@@ -1381,94 +1483,156 @@ UPDATE_HTML = """
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Update Registration | Shrimad Bhagwat Katha</title>
-<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  background:#1a0a00;background:radial-gradient(ellipse at 50% 30%,#3a1a00 0%,#1a0a00 70%);
-  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:#1a0a00;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;overflow-x:hidden;
 }
-.card{
-  background:rgba(255,255,255,0.07);border-radius:20px;padding:36px 28px;
-  width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5);
-  border-top:5px solid #FF8C00;backdrop-filter:blur(12px);
-  border:1px solid rgba(255,165,0,0.15);
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 50% 20%,rgba(255,140,0,0.12) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 80%,rgba(139,26,26,0.1) 0%,transparent 50%);
+  pointer-events:none;
 }
-.lang-toggle{display:flex;justify-content:flex-end;margin-bottom:12px;}
+.page{position:relative;z-index:1;width:100%;max-width:460px;}
+.lang-toggle{display:flex;justify-content:flex-end;margin-bottom:10px;}
 .lang-btn{
-  padding:5px 14px;border:2px solid rgba(255,165,0,0.5);font-size:0.78rem;
-  font-weight:600;cursor:pointer;background:transparent;color:rgba(255,255,255,0.7);transition:all 0.2s;
+  padding:6px 16px;border:1.5px solid rgba(255,165,0,0.4);font-size:0.75rem;
+  font-weight:600;cursor:pointer;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);
+  transition:all 0.2s;backdrop-filter:blur(8px);
 }
-.lang-btn.active{background:rgba(255,165,0,0.25);color:#FFD700;border-color:#FF8C00;}
+.lang-btn.active{background:rgba(255,165,0,0.2);color:#FFD700;border-color:#FF8C00;}
 .lang-btn:first-child{border-radius:20px 0 0 20px;}
 .lang-btn:last-child{border-radius:0 20px 20px 0;}
+.card{
+  background:linear-gradient(145deg,rgba(42,26,10,0.9),rgba(26,10,0,0.95));
+  border-radius:24px;padding:32px 24px;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,165,0,0.1);
+  border:1px solid rgba(255,165,0,0.12);position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,#8B1A1A,#CC5500,#FF8C00,#FFD700,#FF8C00,#CC5500,#8B1A1A);
+}
 .card-header{text-align:center;margin-bottom:20px;}
-.card-header h1{font-size:1.3rem;color:#FFD700;margin-bottom:4px;}
-.card-header .sub{font-size:0.85rem;color:rgba(255,255,255,0.5);}
+.card-header .edit-icon{font-size:2rem;margin-bottom:6px;filter:drop-shadow(0 0 10px rgba(255,140,0,0.3));}
+.card-header h1{font-family:'Playfair Display',serif;font-size:1.3rem;color:#FFD700;margin-bottom:4px;}
+.card-header .sub{font-size:0.82rem;color:rgba(255,255,255,0.45);letter-spacing:0.5px;}
+.divider{width:60px;height:2px;margin:10px auto;background:linear-gradient(90deg,transparent,#FF8C00,transparent);}
 .current-info{
-  background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.25);border-radius:12px;
-  padding:14px;margin-bottom:20px;font-size:0.85rem;color:rgba(255,255,255,0.7);
+  background:rgba(255,165,0,0.06);border:1px solid rgba(255,165,0,0.15);border-radius:14px;
+  padding:16px;margin-bottom:20px;
 }
-.current-info .row{display:flex;justify-content:space-between;padding:4px 0;}
-.current-info .label{color:rgba(255,255,255,0.5);}
-.current-info .value{color:#FFD700;font-weight:600;}
-.form-group{margin-bottom:16px;}
-.form-group label{display:block;font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px;}
-.form-group input,.form-group select{
-  width:100%;padding:12px 14px;border:2px solid rgba(255,165,0,0.3);border-radius:10px;
-  font-size:1rem;color:#fff;background:rgba(255,255,255,0.06);outline:none;
+.current-info .info-title{
+  font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;
+  color:rgba(255,255,255,0.35);margin-bottom:10px;
 }
-.form-group select option{background:#2a1a0a;color:#fff;}
-.form-group input:focus,.form-group select:focus{border-color:#FF8C00;background:rgba(255,255,255,0.1);}
-.submit-btn{
-  width:100%;padding:14px;background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
-  color:#fff;font-size:1rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;
-  box-shadow:0 4px 20px rgba(255,140,0,0.3);margin-top:8px;
+.current-info .row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid rgba(255,165,0,0.06);
 }
-.submit-btn:hover{transform:translateY(-1px);}
+.current-info .row:last-child{border-bottom:none;}
+.current-info .label{
+  font-size:0.82rem;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:6px;
+}
+.current-info .label .ic{font-size:0.85rem;opacity:0.6;}
+.current-info .value{font-size:0.88rem;color:#FFD700;font-weight:600;}
 .error-msg{
-  background:rgba(200,30,30,0.15);border:1px solid rgba(255,100,100,0.3);color:#ff8a8a;
-  padding:12px;border-radius:10px;font-size:0.9rem;margin-bottom:18px;text-align:center;
+  background:rgba(200,30,30,0.12);border:1px solid rgba(255,100,100,0.25);color:#ff8a8a;
+  padding:12px 16px;border-radius:12px;font-size:0.88rem;margin-bottom:16px;text-align:center;
+  display:flex;align-items:center;justify-content:center;gap:8px;
 }
 .success-msg{
-  background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#6ee7b7;
-  padding:12px;border-radius:10px;font-size:0.9rem;margin-bottom:18px;text-align:center;
+  background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);color:#6ee7b7;
+  padding:12px 16px;border-radius:12px;font-size:0.88rem;margin-bottom:16px;text-align:center;
+  display:flex;align-items:center;justify-content:center;gap:8px;
 }
-.back-link{display:block;text-align:center;margin-top:18px;color:#FFD700;font-size:0.85rem;text-decoration:none;}
-.back-link:hover{text-decoration:underline;}
-.note{font-size:0.78rem;color:rgba(255,255,255,0.35);text-align:center;margin-top:12px;}
+.form-group{margin-bottom:14px;}
+.form-group label{
+  display:flex;align-items:center;gap:6px;
+  font-size:0.82rem;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:6px;
+}
+.form-group label .field-icon{font-size:0.9rem;opacity:0.7;}
+.form-group input,.form-group select{
+  width:100%;padding:13px 14px;border:1.5px solid rgba(255,165,0,0.2);border-radius:12px;
+  font-size:0.95rem;color:#fff;background:rgba(255,255,255,0.04);
+  transition:all 0.25s ease;outline:none;
+}
+.form-group select{color:rgba(255,255,255,0.8);-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFD700' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5l6.5 6.5 6.5-6.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+.form-group select option{background:#2a1a0a;color:#fff;}
+.form-group input:focus,.form-group select:focus{
+  border-color:#FF8C00;background:rgba(255,255,255,0.07);
+  box-shadow:0 0 0 3px rgba(255,140,0,0.1);
+}
+.submit-btn{
+  width:100%;padding:15px;margin-top:6px;
+  background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
+  color:#fff;font-size:1rem;font-weight:700;border:none;border-radius:14px;
+  cursor:pointer;position:relative;overflow:hidden;
+  box-shadow:0 6px 24px rgba(255,140,0,0.3);transition:all 0.2s ease;
+}
+.submit-btn::after{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+  transition:left 0.5s ease;
+}
+.submit-btn:hover::after{left:100%;}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(255,140,0,0.45);}
+.note{
+  font-size:0.75rem;color:rgba(255,255,255,0.3);text-align:center;margin-top:14px;
+  padding:10px;background:rgba(255,255,255,0.02);border-radius:10px;line-height:1.5;
+}
+.back-link{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  margin-top:16px;padding:10px;color:rgba(255,215,0,0.7);font-size:0.84rem;
+  text-decoration:none;font-weight:500;border-radius:10px;transition:all 0.2s;
+}
+.back-link:hover{color:#FFD700;background:rgba(255,165,0,0.08);}
+@media(max-width:480px){
+  .card{padding:24px 18px;border-radius:20px;}
+  .card-header h1{font-size:1.15rem;}
+}
 </style>
 </head>
 <body>
+<div class="page">
+<div class="lang-toggle">
+  <button class="lang-btn active" onclick="setLang('en')">English</button>
+  <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
+</div>
 <div class="card">
-  <div class="lang-toggle">
-    <button class="lang-btn active" onclick="setLang('en')">English</button>
-    <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
-  </div>
   <div class="card-header">
+    <div class="edit-icon">&#x270F;&#xFE0F;</div>
     <h1 data-en="Update Registration" data-hi="पंजीकरण अपडेट करें">Update Registration</h1>
-    <div class="sub" data-en="Modify your attendees or invitee name" data-hi="उपस्थित संख्या या निमंत्रणकर्ता बदलें">Modify your attendees or invitee name</div>
+    <div class="sub" data-en="Modify your details below" data-hi="नीचे अपना विवरण बदलें">Modify your details below</div>
+    <div class="divider"></div>
   </div>
 
-  {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
-  {% if success %}<div class="success-msg">{{ success }}</div>{% endif %}
+  {% if error %}<div class="error-msg">&#x26A0; {{ error }}</div>{% endif %}
+  {% if success %}<div class="success-msg">&#x2714; {{ success }}</div>{% endif %}
 
   <div class="current-info">
-    <div class="row"><span class="label" data-en="Name" data-hi="नाम">Name</span><span class="value">{{ reg.name }}</span></div>
-    <div class="row"><span class="label" data-en="Phone" data-hi="फ़ोन">Phone</span><span class="value">{{ phone }}</span></div>
-    <div class="row"><span class="label" data-en="Current Attendees" data-hi="वर्तमान उपस्थित">Current Attendees</span><span class="value">{{ reg.attendees }}</span></div>
-    <div class="row"><span class="label" data-en="Current Invitee" data-hi="वर्तमान निमंत्रणकर्ता">Current Invitee</span><span class="value">{{ reg.invitee_name }}</span></div>
+    <div class="info-title" data-en="Current Registration" data-hi="वर्तमान पंजीकरण">Current Registration</div>
+    <div class="row"><span class="label"><span class="ic">&#x1F464;</span> <span data-en="Name" data-hi="नाम">Name</span></span><span class="value">{{ reg.name }}</span></div>
+    <div class="row"><span class="label"><span class="ic">&#x1F4F1;</span> <span data-en="Phone" data-hi="फ़ोन">Phone</span></span><span class="value">{{ phone }}</span></div>
+    <div class="row"><span class="label"><span class="ic">&#x1F465;</span> <span data-en="Attendees" data-hi="उपस्थित">Attendees</span></span><span class="value">{{ reg.attendees }}</span></div>
+    <div class="row"><span class="label"><span class="ic">&#x1F64F;</span> <span data-en="Invitee" data-hi="निमंत्रणकर्ता">Invitee</span></span><span class="value">{{ reg.invitee_name }}</span></div>
   </div>
 
   <form method="POST" action="/update-registration">
     <input type="hidden" name="phone" value="{{ phone }}">
     <div class="form-group">
-      <label data-en="Full Name" data-hi="पूरा नाम">Full Name</label>
+      <label><span class="field-icon">&#x1F464;</span> <span data-en="Full Name" data-hi="पूरा नाम">Full Name</span></label>
       <input type="text" name="name" required value="{{ reg.name }}">
     </div>
     <div class="form-group">
-      <label data-en="Number of Attendees (max 5)" data-hi="उपस्थित लोगों की संख्या (अधिकतम 5)">Number of Attendees (max 5)</label>
+      <label><span class="field-icon">&#x1F465;</span> <span data-en="Number of Attendees (max 5)" data-hi="उपस्थित लोगों की संख्या (अधिकतम 5)">Number of Attendees (max 5)</span></label>
       <select name="attendees" required>
         <option value="1" {{ 'selected' if reg.attendees|int == 1 }}>1</option>
         <option value="2" {{ 'selected' if reg.attendees|int == 2 }}>2</option>
@@ -1478,7 +1642,7 @@ body{
       </select>
     </div>
     <div class="form-group">
-      <label data-en="Invitee Name" data-hi="निमंत्रणकर्ता का नाम">Invitee Name</label>
+      <label><span class="field-icon">&#x1F64F;</span> <span data-en="Invitee Name" data-hi="निमंत्रणकर्ता का नाम">Invitee Name</span></label>
       <select name="invitee_name" required>
         <option value="Arun Gupta Ji" {{ 'selected' if reg.invitee_name == 'Arun Gupta Ji' }}>Arun Gupta Ji</option>
         <option value="Sheena Aron Ji" {{ 'selected' if reg.invitee_name == 'Sheena Aron Ji' }}>Sheena Aron Ji</option>
@@ -1489,8 +1653,9 @@ body{
     </div>
     <button type="submit" class="submit-btn" data-en="&#x2714; Update Registration" data-hi="&#x2714; पंजीकरण अपडेट करें">&#x2714; Update Registration</button>
   </form>
-  <div class="note" data-en="Reducing attendees will cancel extra passes. Increasing may assign new ones." data-hi="उपस्थित कम करने से अतिरिक्त पास रद्द होंगे। बढ़ाने से नए पास मिल सकते हैं।">Reducing attendees will cancel extra passes. Increasing may assign new ones.</div>
+  <div class="note" data-en="Reducing attendees will cancel extra passes. Increasing will assign new ones if seats are available." data-hi="उपस्थित कम करने से अतिरिक्त पास रद्द होंगे। बढ़ाने से नए पास मिलेंगे यदि सीटें उपलब्ध हैं।">Reducing attendees will cancel extra passes. Increasing will assign new ones if seats are available.</div>
   <a href="/my-passes?phone={{ phone }}" class="back-link" data-en="&larr; Back to My Passes" data-hi="&larr; मेरे पास पर वापस जाएं">&larr; Back to My Passes</a>
+</div>
 </div>
 <script>
 function setLang(lang){
