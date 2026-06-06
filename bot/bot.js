@@ -61,14 +61,14 @@ client.on("auth_failure", (msg) => {
 
 client.on("message_create", async (msg) => {
   if (msg.fromMe) return;
+  if (msg.from.includes("@g.us")) return; // ignore group messages
 
-  console.log(`📩 Message from ${msg.from}: "${msg.body}"`);
-  const body = msg.body.trim().toLowerCase();
+  const body = (msg.body || "").trim().toLowerCase();
+  console.log(`📩 Message from ${msg.from}: "${body || "(empty/encrypted)"}"`);
 
-  if (!GREETINGS.some((g) => body.includes(g))) {
-    console.log(`   ↳ Ignored (no greeting keyword found)`);
-    return;
-  }
+  // Reply to ANY direct message — since this is a dedicated event bot number,
+  // treat every incoming DM as a registration request.
+  // (message body can be empty on cloud due to encryption issues)
 
   // Preserve the full chat ID (handles both @c.us and @lid formats)
   const chatId = msg.from;
