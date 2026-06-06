@@ -34,7 +34,7 @@ def today_ist():
 
 def is_registration_open():
     t = now_ist()
-    if t.hour >= 2:
+    if t.hour == 2 and t.minute < 25:
         return True
     return False
 
