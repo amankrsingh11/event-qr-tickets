@@ -748,24 +748,16 @@ def wa_qr_proxy():
 
 @app.route("/api/wa-qr-image")
 def wa_qr_image():
-    """Get QR data from bot and return a PNG image."""
+    """Get QR PNG directly from the bot."""
     try:
-        resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr", timeout=5)
-        data = json.loads(resp.read())
-        if data.get("status") == "ok" and data.get("qr"):
-            from io import BytesIO as BIO
-            qr_obj = qrcode.QRCode(box_size=10, border=4)
-            qr_obj.add_data(data["qr"])
-            qr_obj.make(fit=True)
-            img = qr_obj.make_image(fill_color="black", back_color="white")
-            buf = BIO()
-            img.save(buf, format="PNG")
-            buf.seek(0)
-            return buf.read(), 200, {"Content-Type": "image/png"}
-        elif data.get("status") == "no_qr":
+        resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr-png", timeout=5)
+        if resp.status == 200:
+            return resp.read(), 200, {"Content-Type": "image/png"}
+        return jsonify({"status": "connected"})
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
             return jsonify({"status": "connected"})
-        else:
-            return jsonify({"status": "waiting"})
+        return jsonify({"status": "error"})
     except Exception:
         return jsonify({"status": "error", "message": "Bot not reachable"})
 

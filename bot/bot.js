@@ -1,5 +1,12 @@
-const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
-const qrcode = require("qrcode-terminal");
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason,
+  makeCacheableSignalKeyStore,
+} = require("@whiskeysockets/baileys");
+const pino = require("pino");
+const qrcodeTerminal = require("qrcode-terminal");
+const QRCode = require("qrcode");
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
@@ -13,113 +20,104 @@ const BASE_URL = PUBLIC_DOMAIN
   ? `https://${PUBLIC_DOMAIN}`
   : `http://${process.env.SERVER_HOST || "localhost"}:${FLASK_PORT}`;
 
-const WA_SESSION_DIR = path.resolve(__dirname, "wa_session");
+const AUTH_DIR = path.resolve(__dirname, "wa_session", "baileys_auth");
+const logger = pino({ level: "warn" });
 
-if (process.env.RESET_WA_SESSION === "true" && fs.existsSync(WA_SESSION_DIR)) {
-  console.log("⚠ RESET_WA_SESSION is set — clearing old WhatsApp session...");
-  fs.rmSync(WA_SESSION_DIR, { recursive: true, force: true });
-  console.log("  Session cleared. A new QR code will appear for login.");
+if (process.env.RESET_WA_SESSION === "true" && fs.existsSync(AUTH_DIR)) {
+  console.log("⚠ RESET_WA_SESSION — clearing old session...");
+  fs.rmSync(AUTH_DIR, { recursive: true, force: true });
 }
 
-// ── WhatsApp Client ───────────────────────────────────────────
-const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: "./wa_session" }),
-  puppeteer: {
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--no-first-run",
-      "--disable-extensions",
-    ],
-  },
-  webVersionCache: {
-    type: "remote",
-    remotePath:
-      "https://raw.githubusercontent.com/nicolomaioli/nicofyi-wwebjs-cache/refs/heads/main/",
-  },
-});
-
+// ── State ─────────────────────────────────────────────────────
+let sock = null;
 let latestQr = null;
+let latestQrPng = null;
 
-client.on("qr", (qr) => {
-  latestQr = qr;
-  console.log("\n╔══════════════════════════════════════════════╗");
-  console.log("║  Scan this QR code with your WhatsApp phone  ║");
-  console.log("║  Or open /wa-login on the server to scan      ║");
-  console.log("╚══════════════════════════════════════════════╝\n");
-  qrcode.generate(qr, { small: true });
-});
+// ── Connect to WhatsApp ───────────────────────────────────────
+async function startBot() {
+  fs.mkdirSync(AUTH_DIR, { recursive: true });
+  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
 
-client.on("ready", () => {
-  latestQr = null;
-  console.log("\n✔  WhatsApp Bot is READY and connected!");
-  console.log(`   Base URL: ${BASE_URL}`);
-  console.log(`   Bot API: http://localhost:${BOT_API_PORT}`);
-  console.log("   Waiting for messages...\n");
-});
+  sock = makeWASocket({
+    auth: {
+      creds: state.creds,
+      keys: makeCacheableSignalKeyStore(state.keys, logger),
+    },
+    printQRInTerminal: false,
+    logger,
+  });
 
-client.on("authenticated", () => {
-  console.log("✔  Authenticated with WhatsApp");
-});
+  sock.ev.on("creds.update", saveCreds);
 
-client.on("auth_failure", (msg) => {
-  console.error("✕  Authentication failed:", msg);
-});
+  sock.ev.on("connection.update", async (update) => {
+    const { connection, lastDisconnect, qr } = update;
 
-client.on("disconnected", (reason) => {
-  console.error("✕  Disconnected:", reason);
-});
+    if (qr) {
+      latestQr = qr;
+      try {
+        latestQrPng = await QRCode.toBuffer(qr, { width: 400, margin: 3 });
+      } catch (e) {
+        latestQrPng = null;
+      }
+      console.log("\n╔══════════════════════════════════════════════╗");
+      console.log("║  Scan QR with WhatsApp → Linked Devices       ║");
+      console.log("║  Or open /wa-login on the server               ║");
+      console.log("╚══════════════════════════════════════════════╝\n");
+      qrcodeTerminal.generate(qr, { small: true });
+    }
 
-// ── Message handler ───────────────────────────────────────────
-async function handleIncomingMessage(msg) {
-  if (msg.fromMe) return;
-  if (!msg.from || msg.from.includes("@g.us") || msg.from === "status@broadcast") return;
+    if (connection === "close") {
+      const code = lastDisconnect?.error?.output?.statusCode;
+      const shouldReconnect = code !== DisconnectReason.loggedOut;
+      console.log(`⚠ Connection closed (code ${code}). Reconnect: ${shouldReconnect}`);
+      if (shouldReconnect) {
+        setTimeout(startBot, 3000);
+      }
+    }
 
-  const body = (msg.body || "").trim();
-  console.log(`📩 [${msg.type}] from ${msg.from}: "${body || "(empty)"}"`);
+    if (connection === "open") {
+      latestQr = null;
+      latestQrPng = null;
+      console.log("\n✔  WhatsApp Bot is CONNECTED!");
+      console.log(`   Base URL: ${BASE_URL}`);
+      console.log("   Waiting for messages...\n");
+    }
+  });
 
-  const chatId = msg.from;
-  const registrationUrl = `${BASE_URL}/register?phone=${encodeURIComponent(chatId)}`;
+  sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    for (const msg of messages) {
+      if (msg.key.fromMe) continue;
+      if (!msg.key.remoteJid) continue;
+      if (msg.key.remoteJid.includes("@g.us")) continue;
+      if (msg.key.remoteJid === "status@broadcast") continue;
 
-  const replyText =
-    `Hey there! 👋 Welcome to the event!\n\n` +
-    `Please register using the link below to get your entry QR ticket:\n\n` +
-    `🔗 ${registrationUrl}\n\n` +
-    `Once you register, your QR code will be sent here automatically. ` +
-    `Show it at the door for entry!`;
+      const body =
+        msg.message?.conversation ||
+        msg.message?.extendedTextMessage?.text ||
+        "";
+      const chatId = msg.key.remoteJid;
+      console.log(`📩 Message from ${chatId}: "${body || "(media/empty)"}"`);
 
-  try {
-    await client.sendMessage(chatId, replyText);
-    console.log(`→ Sent registration link to ${chatId}`);
-  } catch (err) {
-    console.error(`✕ Failed to reply to ${chatId}:`, err.message);
-  }
+      const registrationUrl = `${BASE_URL}/register?phone=${encodeURIComponent(chatId)}`;
+
+      const replyText =
+        `Hey there! 👋 Welcome to the event!\n\n` +
+        `Please register using the link below to get your entry QR ticket:\n\n` +
+        `🔗 ${registrationUrl}\n\n` +
+        `Once you register, your QR code will be sent here automatically. ` +
+        `Show it at the door for entry!`;
+
+      try {
+        await sock.sendMessage(chatId, { text: replyText });
+        console.log(`→ Sent registration link to ${chatId}`);
+      } catch (err) {
+        console.error(`✕ Failed to reply to ${chatId}:`, err.message);
+      }
+    }
+  });
 }
 
-// Listen on BOTH events to maximize compatibility
-client.on("message", handleIncomingMessage);
-client.on("message_create", handleIncomingMessage);
-
-// Dedup: track recently handled messages to avoid double-reply
-const handled = new Set();
-const originalHandler = handleIncomingMessage;
-async function dedupHandler(msg) {
-  const key = msg.id ? msg.id._serialized : `${msg.from}-${msg.timestamp}`;
-  if (handled.has(key)) return;
-  handled.add(key);
-  setTimeout(() => handled.delete(key), 60000);
-  return originalHandler(msg);
-}
-client.removeAllListeners("message");
-client.removeAllListeners("message_create");
-client.on("message", dedupHandler);
-client.on("message_create", dedupHandler);
-
-// ── Express API (Flask calls this to send QR images) ──────────
+// ── Express API ───────────────────────────────────────────────
 const api = express();
 api.use(express.json());
 
@@ -131,14 +129,14 @@ api.post("/send-qr", async (req, res) => {
   }
 
   try {
-    const chatId = phone.includes("@") ? phone : `${phone}@c.us`;
+    const chatId = phone.includes("@") ? phone : `${phone}@s.whatsapp.net`;
     const absolutePath = path.resolve(__dirname, "..", qr_image_path);
 
     if (!fs.existsSync(absolutePath)) {
       return res.status(404).json({ error: `QR image not found: ${absolutePath}` });
     }
 
-    const media = MessageMedia.fromFilePath(absolutePath);
+    const imgBuffer = fs.readFileSync(absolutePath);
 
     const caption =
       `✅ *Registration Successful!*\n\n` +
@@ -148,7 +146,7 @@ api.post("/send-qr", async (req, res) => {
       `Show this QR code at the event entrance.\n` +
       `⚠️ One-time use only — this ticket becomes invalid after scanning.`;
 
-    await client.sendMessage(chatId, media, { caption });
+    await sock.sendMessage(chatId, { image: imgBuffer, caption });
     console.log(`✔ QR sent to ${phone} (Ticket #${serial})`);
     res.json({ status: "ok", message: `QR sent to ${phone}` });
   } catch (err) {
@@ -158,21 +156,28 @@ api.post("/send-qr", async (req, res) => {
 });
 
 api.get("/health", (req, res) => {
-  const state = client.info ? "connected" : "disconnected";
-  res.json({ status: "ok", whatsapp: state });
+  const connected = sock?.user ? true : false;
+  res.json({ status: "ok", whatsapp: connected ? "connected" : "disconnected" });
 });
 
 api.get("/wa-qr", (req, res) => {
   if (!latestQr) {
-    return res.json({ status: "no_qr", message: "Already connected or no QR generated yet" });
+    return res.json({ status: "no_qr", message: "Already connected or no QR yet" });
   }
   res.json({ status: "ok", qr: latestQr });
 });
 
-// ── Start everything ──────────────────────────────────────────
+api.get("/wa-qr-png", (req, res) => {
+  if (latestQrPng) {
+    return res.set("Content-Type", "image/png").send(latestQrPng);
+  }
+  res.status(404).json({ status: "no_qr" });
+});
+
+// ── Start ─────────────────────────────────────────────────────
 api.listen(BOT_API_PORT, () => {
   console.log(`\n📡 Bot API server listening on port ${BOT_API_PORT}`);
 });
 
-console.log("⏳ Initializing WhatsApp client...");
-client.initialize();
+console.log("⏳ Starting WhatsApp bot (Baileys)...");
+startBot().catch((err) => console.error("Fatal:", err));
