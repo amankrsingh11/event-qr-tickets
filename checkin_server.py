@@ -188,7 +188,7 @@ def get_assigned_serials(registrations):
     return serials
 
 def total_attendees_registered(registrations):
-    return sum(r["attendees"] for r in registrations.values())
+    return sum(int(r["attendees"]) for r in registrations.values())
 
 def get_next_available_tickets(count, date_str, registrations):
     assigned = get_assigned_serials(registrations)
@@ -1208,7 +1208,7 @@ def register_form():
         return render_template_string(ALREADY_REGISTERED_HTML,
             name=reg["name"], attendees=reg["attendees"], phone=phone, date_str=date_str)
 
-    spots_left = TOTAL_CAPACITY - total_attendees_registered(registrations)
+    spots_left = max(0, TOTAL_CAPACITY - total_attendees_registered(registrations))
     return render_template_string(REGISTER_HTML,
         date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
         error=None, prev={"name": "", "phone": phone, "attendees": "", "invitee_name": ""})
@@ -1230,7 +1230,7 @@ def register_submit():
 
     prev = {"name": name, "phone": phone, "attendees": str(attendees), "invitee_name": invitee_name}
     registrations = load_registrations(date_str)
-    spots_left = TOTAL_CAPACITY - total_attendees_registered(registrations)
+    spots_left = max(0, TOTAL_CAPACITY - total_attendees_registered(registrations))
 
     if phone in registrations:
         reg = registrations[phone]
