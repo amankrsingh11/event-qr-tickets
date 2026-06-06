@@ -428,8 +428,8 @@ REGISTER_HTML = """
       <input type="text" name="name" required placeholder="Your full name" value="{{ prev_name or '' }}">
     </div>
     <div class="form-group">
-      <label>Phone Number</label>
-      <input type="text" name="phone" value="{{ phone }}" readonly>
+      <label>Phone Number *</label>
+      <input type="tel" name="phone" required placeholder="e.g. 9876543210" value="{{ phone or prev_phone or '' }}">
     </div>
     <div class="form-group">
       <label>Email *</label>
@@ -577,7 +577,7 @@ SUCCESS_HTML = """
   </div>
 
   <div class="wa-notice">
-    All {{ attendees }} QR code{{ 's' if attendees|int > 1 else '' }} have been sent to your WhatsApp. Each person shows their own QR at the door. One-time use only!
+    Screenshot {{ 'these QR codes' if attendees|int > 1 else 'this QR code' }} now! Each person shows their own QR at the door. One-time use only!
   </div>
 </div>
 </body>
@@ -804,24 +804,24 @@ def register_submit():
         return render_template_string(SUCCESS_HTML,
             name=reg["name"], tickets=reg["tickets"], attendees=reg["attendees"])
 
-    if not name or not email:
+    if not name or not email or not phone:
         return render_template_string(REGISTER_HTML,
             phone=phone, spots_left=spots_left, total=TOTAL_CAPACITY,
-            error="Name and Email are required.",
-            prev_name=name, prev_email=email, prev_reference=reference)
+            error="Name, Phone, and Email are required.",
+            prev_name=name, prev_email=email, prev_phone=phone, prev_reference=reference)
 
     if spots_left < attendees:
         return render_template_string(REGISTER_HTML,
             phone=phone, spots_left=spots_left, total=TOTAL_CAPACITY,
             error=f"Only {spots_left} spots left, but you requested {attendees}.",
-            prev_name=name, prev_email=email, prev_reference=reference)
+            prev_name=name, prev_email=email, prev_phone=phone, prev_reference=reference)
 
     available = get_next_available_tickets(attendees)
     if len(available) < attendees:
         return render_template_string(REGISTER_HTML,
             phone=phone, spots_left=spots_left, total=TOTAL_CAPACITY,
             error="Not enough tickets available.",
-            prev_name=name, prev_email=email, prev_reference=reference)
+            prev_name=name, prev_email=email, prev_phone=phone, prev_reference=reference)
 
     tickets_data = []
     for serial, ticket_id in available:
@@ -845,8 +845,6 @@ def register_submit():
 
     serials_str = ", ".join(f"#{t['serial']:03d}" for t in tickets_data)
     print(f"✔ Registered: {name} ({phone}) → {attendees} ticket(s): {serials_str}", flush=True)
-
-    notify_bot(phone, tickets_data, name)
 
     return render_template_string(SUCCESS_HTML,
         name=name, tickets=tickets_data, attendees=attendees)
