@@ -1014,11 +1014,44 @@ body{
 .lang-btn.active{background:rgba(255,165,0,0.25);color:#FFD700;border-color:#FF8C00;}
 .lang-btn:first-child{border-radius:20px 0 0 20px;}
 .lang-btn:last-child{border-radius:0 20px 20px 0;}
-@media(max-width:400px){
-  .hindi-title{font-size:1.8rem;}
-  .eng-title{font-size:1.2rem;}
-  .om{font-size:3rem;}
-  .register-btn{padding:16px 36px;font-size:1rem;}
+@media(max-width:768px){
+  .hero{padding:60px 16px 40px;}
+  .hindi-title{font-size:2rem;}
+  .eng-title{font-size:1.3rem;letter-spacing:2px;}
+  .om{font-size:3.2rem;}
+  .verse{font-size:1rem;max-width:90vw;padding:0 8px;}
+  .info-cards{gap:10px;max-width:95vw;padding:0 4px;}
+  .info-card{min-width:120px;padding:14px 14px;}
+  .info-card .value{font-size:0.85rem;}
+  .info-card .label{font-size:0.68rem;}
+  .register-btn{padding:16px 36px;font-size:1.05rem;}
+  .footer-text{font-size:0.75rem;padding:0 16px;}
+}
+@media(max-width:480px){
+  .hero{padding:56px 12px 32px;}
+  .hindi-title{font-size:1.7rem;}
+  .eng-title{font-size:1.1rem;letter-spacing:1.5px;margin-bottom:14px;}
+  .om{font-size:2.8rem;}
+  .diya{font-size:1.6rem;}
+  .diya-row{gap:14px;margin-bottom:14px;}
+  .verse{font-size:0.9rem;line-height:1.6;margin-bottom:20px;}
+  .divider{width:80px;margin-bottom:18px;}
+  .info-cards{flex-direction:column;align-items:stretch;gap:10px;width:100%;}
+  .info-card{min-width:unset;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 16px;}
+  .info-card .icon{font-size:1.4rem;margin-bottom:0;flex-shrink:0;}
+  .info-card .label{margin-bottom:2px;}
+  .register-btn{padding:15px 28px;font-size:0.95rem;width:100%;justify-content:center;max-width:320px;}
+  .footer-text{font-size:0.72rem;margin-top:24px;padding:0 12px;}
+  .lang-toggle{top:12px;right:12px;}
+  .lang-btn{padding:4px 10px;font-size:0.72rem;}
+}
+@media(max-width:360px){
+  .hindi-title{font-size:1.5rem;}
+  .eng-title{font-size:1rem;}
+  .om{font-size:2.4rem;}
+  .verse{font-size:0.82rem;}
+  .register-btn{padding:14px 20px;font-size:0.88rem;}
+  .info-card .value{font-size:0.8rem;}
 }
 </style>
 </head>
