@@ -2,3 +2,5 @@ qrcode[pil]
 Pillow
 flask
 upstash-redis
+gspread
+google-auth
