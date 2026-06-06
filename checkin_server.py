@@ -25,7 +25,7 @@ TOTAL_CAPACITY = 200
 # Storage backend — Redis (Vercel/serverless) or local JSON files
 # ---------------------------------------------------------------------------
 
-USE_REDIS = bool(os.environ.get("UPSTASH_REDIS_REST_URL"))
+USE_REDIS = bool(os.environ.get("KV_REST_API_URL"))
 IS_VERCEL = bool(os.environ.get("VERCEL"))
 LOCAL_DATA_DIR = "/tmp/app_data" if IS_VERCEL else DATA_DIR
 
@@ -37,8 +37,8 @@ def _get_redis():
     if _redis_client is None:
         from upstash_redis import Redis
         _redis_client = Redis(
-            url=os.environ["UPSTASH_REDIS_REST_URL"],
-            token=os.environ["UPSTASH_REDIS_REST_TOKEN"],
+            url=os.environ["KV_REST_API_URL"],
+            token=os.environ["KV_REST_API_TOKEN"],
         )
     return _redis_client
 
