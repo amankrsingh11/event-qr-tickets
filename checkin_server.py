@@ -676,7 +676,7 @@ body::before{
 .footer-links{
   margin-top:20px;padding-top:16px;
   border-top:1px solid rgba(255,165,0,0.1);
-  text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
 }
 .footer-links a{
   display:inline-flex;align-items:center;gap:6px;
@@ -787,7 +787,9 @@ body::before{
   </div>
 
   <div class="footer-links">
-    <a href="/my-passes" data-en="&#x1F4F1; Already registered? View your passes" data-hi="&#x1F4F1; पहले से पंजीकृत? अपने पास देखें">&#x1F4F1; Already registered? View your passes</a>
+    <a href="/my-passes" data-en="&#x1F3AB; Already registered? View your passes" data-hi="&#x1F3AB; पहले से पंजीकृत? अपने पास देखें">&#x1F3AB; Already registered? View your passes</a>
+    <a href="/update-registration" data-en="&#x270F; Update existing registration" data-hi="&#x270F; मौजूदा पंजीकरण अपडेट करें">&#x270F; Update existing registration</a>
+    <a href="/" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
   </div>
 </div>
 </div>
@@ -822,106 +824,155 @@ SUCCESS_HTML = """
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Registration Successful | Shrimad Bhagwat Katha</title>
-<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #E8F5E9, #C8E6C9, #A5D6A7);
-    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
-  }
-  .card {
-    background: #fff; border-radius: 20px; padding: 36px 28px;
-    width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); text-align: center;
-    border-top: 5px solid #2E7D32;
-  }
-  .check-icon {
-    width: 70px; height: 70px; background: #2E7D32; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 16px; font-size: 2.2rem; color: #fff;
-  }
-  .greeting { font-family: 'Tiro Devanagari Hindi', serif; font-size: 1.4rem; color: #CC5500; margin-bottom: 6px; }
-  h1 { font-size: 1.4rem; color: #1B5E20; margin-bottom: 6px; }
-  .subtitle { color: #558B2F; font-size: 0.95rem; margin-bottom: 8px; }
-  .date-pill {
-    display: inline-block; padding: 5px 14px; background: #E8F5E9; color: #2E7D32;
-    border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 16px;
-  }
-  .venue-info {
-    background: #FFF8E1; border: 1px solid #FFCC80; border-radius: 10px;
-    padding: 10px; font-size: 0.8rem; color: #6b4c3b; margin-bottom: 16px; line-height: 1.5;
-  }
-  .venue-info strong { color: #8B1A1A; }
-  .qr-section { margin-bottom: 16px; }
-  .qr-box {
-    background: #FFFDE7; border: 2px dashed #FFCC80; border-radius: 16px;
-    padding: 20px; margin-bottom: 12px;
-  }
-  .qr-box img { width: 180px; height: 180px; }
-  .qr-label { font-size: 0.85rem; font-weight: 600; color: #5D4037; margin-bottom: 8px; }
-  .ticket-id {
-    font-family: monospace; background: #FFF3E0; padding: 6px 12px;
-    border-radius: 6px; font-size: 0.75rem; color: #5D4037; margin-top: 8px; display: inline-block;
-  }
-  .ticket-info { margin-top: 16px; }
-  .ticket-info .row {
-    display: flex; justify-content: space-between; padding: 8px 0;
-    border-bottom: 1px solid #E8F5E9; font-size: 0.9rem;
-  }
-  .ticket-info .row:last-child { border-bottom: none; }
-  .ticket-info .label { color: #6b4c3b; }
-  .ticket-info .value { color: #3E2723; font-weight: 600; }
-  .notice {
-    background: #FFF8E1; border: 1px solid #FFCC80; border-radius: 10px;
-    padding: 12px; font-size: 0.85rem; color: #6b4c3b; margin-top: 20px;
-  }
-  .notice strong { color: #BF360C; }
-  .update-link {
-    display: block; text-align: center; margin-top: 16px; padding: 12px;
-    color: #2E7D32; font-size: 0.88rem; font-weight: 600; text-decoration: none;
-    border: 2px solid #A5D6A7; border-radius: 12px; transition: all 0.2s;
-  }
-  .update-link:hover { background: #E8F5E9; }
-  .btn-row {
-    display: flex; gap: 10px; margin-top: 10px; justify-content: center; flex-wrap: wrap;
-  }
-  .btn-download, .btn-share {
-    padding: 10px 18px; border-radius: 10px; font-size: 0.82rem; font-weight: 600;
-    border: none; cursor: pointer; text-decoration: none;
-    display: inline-flex; align-items: center; gap: 6px;
-  }
-  .btn-download { background: #5D4037; color: #fff; }
-  .btn-share { background: #25D366; color: #fff; }
-  .btn-all-row {
-    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
-    margin-top: 18px; padding-top: 18px; border-top: 2px solid #E8F5E9;
-  }
-  .btn-all {
-    padding: 12px 22px; border-radius: 12px; font-size: 0.88rem; font-weight: 700;
-    border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
-  }
-  .btn-all.download-pdf { background: linear-gradient(135deg, #8B1A1A, #CC5500); color: #fff; }
-  .btn-all.share { background: linear-gradient(135deg, #25D366, #128C7E); color: #fff; }
-  .btn-all:disabled { opacity: 0.5; cursor: not-allowed; }
-  .lang-toggle {
-    display: flex; justify-content: flex-end; margin-bottom: 8px;
-  }
-  .lang-btn {
-    padding: 5px 14px; border: 2px solid #2E7D32; border-radius: 20px; font-size: 0.78rem;
-    font-weight: 600; cursor: pointer; background: #fff; color: #2E7D32; transition: all 0.2s;
-  }
-  .lang-btn.active { background: #2E7D32; color: #fff; }
-  .lang-btn:first-child { border-radius: 20px 0 0 20px; }
-  .lang-btn:last-child { border-radius: 0 20px 20px 0; }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#1a0a00;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 50% 20%,rgba(16,185,80,0.08) 0%,transparent 50%),
+             radial-gradient(ellipse at 80% 80%,rgba(255,140,0,0.06) 0%,transparent 50%);
+  pointer-events:none;
+}
+.page{position:relative;z-index:1;width:100%;max-width:560px;}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.nav-links{display:flex;gap:6px;}
+.nav-links a{
+  padding:6px 14px;border-radius:20px;font-size:0.75rem;font-weight:600;
+  text-decoration:none;color:rgba(255,255,255,0.6);
+  border:1px solid rgba(255,255,255,0.1);transition:all 0.2s;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.nav-links a:hover{color:#FFD700;border-color:rgba(255,165,0,0.3);background:rgba(255,165,0,0.08);}
+.lang-toggle{display:flex;}
+.lang-btn{
+  padding:6px 16px;border:1.5px solid rgba(255,165,0,0.4);font-size:0.75rem;
+  font-weight:600;cursor:pointer;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);
+  transition:all 0.2s;
+}
+.lang-btn.active{background:rgba(255,165,0,0.2);color:#FFD700;border-color:#FF8C00;}
+.lang-btn:first-child{border-radius:20px 0 0 20px;}
+.lang-btn:last-child{border-radius:0 20px 20px 0;}
+.card{
+  background:linear-gradient(145deg,rgba(42,26,10,0.9),rgba(26,10,0,0.95));
+  border-radius:24px;padding:32px 24px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6),inset 0 1px 0 rgba(16,185,80,0.15);
+  border:1px solid rgba(16,185,80,0.12);position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,#1B5E20,#2E7D32,#4CAF50,#81C784,#4CAF50,#2E7D32,#1B5E20);
+}
+.check-icon{
+  width:70px;height:70px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 14px;font-size:2.2rem;color:#fff;
+  background:linear-gradient(135deg,#2E7D32,#4CAF50);
+  box-shadow:0 8px 24px rgba(46,125,50,0.4);
+}
+.greeting{font-family:'Tiro Devanagari Hindi',serif;font-size:1.4rem;color:#FF8C00;margin-bottom:4px;}
+h1{font-family:'Playfair Display',serif;font-size:1.35rem;color:#81C784;margin-bottom:6px;}
+.subtitle{color:rgba(129,199,132,0.8);font-size:0.92rem;margin-bottom:8px;}
+.date-pill{
+  display:inline-block;padding:5px 16px;background:rgba(46,125,50,0.15);color:#81C784;
+  border-radius:20px;font-size:0.78rem;font-weight:600;margin-bottom:16px;
+  border:1px solid rgba(46,125,50,0.25);
+}
+.venue-info{
+  background:rgba(255,165,0,0.06);border:1px solid rgba(255,165,0,0.15);border-radius:12px;
+  padding:10px;font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:16px;line-height:1.5;
+}
+.venue-info strong{color:#FFD700;}
+.qr-section{margin-bottom:16px;}
+.qr-box{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,165,0,0.15);border-radius:16px;
+  padding:20px;margin-bottom:12px;
+}
+.qr-box img{width:180px;height:180px;border-radius:8px;}
+.qr-label{font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px;}
+.ticket-id{
+  font-family:monospace;background:rgba(255,165,0,0.08);padding:6px 12px;
+  border-radius:6px;font-size:0.72rem;color:rgba(255,215,0,0.6);margin-top:8px;display:inline-block;
+  border:1px solid rgba(255,165,0,0.1);
+}
+.ticket-info{margin-top:16px;background:rgba(255,255,255,0.03);border-radius:14px;padding:4px 14px;}
+.ticket-info .row{
+  display:flex;justify-content:space-between;padding:9px 0;
+  border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.88rem;
+}
+.ticket-info .row:last-child{border-bottom:none;}
+.ticket-info .label{color:rgba(255,255,255,0.45);}
+.ticket-info .value{color:#FFD700;font-weight:600;}
+.notice{
+  background:rgba(255,165,0,0.06);border:1px solid rgba(255,165,0,0.12);border-radius:12px;
+  padding:12px;font-size:0.82rem;color:rgba(255,255,255,0.5);margin-top:18px;line-height:1.5;
+}
+.notice strong{color:#FF8C00;}
+.btn-row{display:flex;gap:10px;margin-top:10px;justify-content:center;flex-wrap:wrap;}
+.btn-share{
+  padding:10px 20px;border-radius:10px;font-size:0.82rem;font-weight:600;
+  border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;transition:all 0.2s;
+}
+.btn-share:hover{transform:translateY(-1px);}
+.btn-all-row{
+  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.06);
+}
+.btn-all{
+  padding:13px 24px;border-radius:14px;font-size:0.88rem;font-weight:700;
+  border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+  transition:all 0.2s;position:relative;overflow:hidden;
+}
+.btn-all::after{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+  transition:left 0.5s ease;
+}
+.btn-all:hover::after{left:100%;}
+.btn-all.download-pdf{background:linear-gradient(135deg,#FF8C00,#CC5500);color:#fff;box-shadow:0 4px 16px rgba(255,140,0,0.3);}
+.btn-all.share{background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;box-shadow:0 4px 16px rgba(37,211,102,0.3);}
+.btn-all:hover{transform:translateY(-2px);}
+.btn-all:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.action-links{
+  display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;
+}
+.action-link{
+  flex:1;min-width:140px;padding:12px;border-radius:12px;text-align:center;
+  text-decoration:none;font-size:0.82rem;font-weight:600;
+  border:1px solid rgba(255,165,0,0.15);color:rgba(255,215,0,0.7);
+  transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.action-link:hover{border-color:rgba(255,165,0,0.3);color:#FFD700;background:rgba(255,165,0,0.06);}
+@media(max-width:480px){
+  .card{padding:24px 16px;border-radius:20px;}
+  h1{font-size:1.15rem;}
+  .qr-box img{width:160px;height:160px;}
+  .btn-all{padding:12px 18px;font-size:0.82rem;}
+  .action-links{flex-direction:column;}
+  .nav-links a{padding:5px 10px;font-size:0.7rem;}
+}
 </style>
 </head>
 <body>
-<div class="card">
+<div class="page">
+<div class="top-bar">
+  <div class="nav-links">
+    <a href="/" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
+    <a href="/register" data-en="&#x1F4DD; Register" data-hi="&#x1F4DD; पंजीकरण">&#x1F4DD; Register</a>
+    <a href="/my-passes" data-en="&#x1F3AB; My Passes" data-hi="&#x1F3AB; मेरे पास">&#x1F3AB; My Passes</a>
+  </div>
   <div class="lang-toggle">
     <button class="lang-btn active" onclick="setLang('en')">English</button>
     <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
   </div>
+</div>
+<div class="card">
   <div class="check-icon">&#10003;</div>
   <div class="greeting">&#x1F64F; <span data-en="JAI MATA DI" data-hi="जय माता दी">JAI MATA DI</span> &#x1F64F;</div>
   <h1 data-en="You're Registered!" data-hi="आपका पंजीकरण हो गया!">You're Registered!</h1>
@@ -962,7 +1013,11 @@ SUCCESS_HTML = """
     Each person must show their own QR at the gate. <strong>Valid today only. One-time use.</strong>
   </div>
 
-  <a href="/update-registration?phone={{ phone }}" class="update-link" data-en="&#x270F; Update Registration (change attendees / invitee)" data-hi="&#x270F; पंजीकरण अपडेट करें (उपस्थित / निमंत्रणकर्ता बदलें)">&#x270F; Update Registration (change attendees / invitee)</a>
+  <div class="action-links">
+    <a href="/update-registration?phone={{ phone }}" class="action-link" data-en="&#x270F; Update Registration" data-hi="&#x270F; पंजीकरण अपडेट करें">&#x270F; Update Registration</a>
+    <a href="/" class="action-link" data-en="&#x1F3E0; Back to Home" data-hi="&#x1F3E0; होम पर वापस जाएं">&#x1F3E0; Back to Home</a>
+  </div>
+</div>
 </div>
 <script>
 const TICKETS = {{ tickets_json | safe }};
@@ -1549,6 +1604,10 @@ h1{font-family:'Playfair Display',serif;font-size:1.4rem;color:#FFD700;margin-bo
     <span data-en="&#x1F64F; New here? Register for a pass" data-hi="&#x1F64F; नए हैं? पास के लिए पंजीकरण करें">&#x1F64F; New here? Register for a pass</span>
     <span class="arrow">&rarr;</span>
   </a>
+  <a href="/" class="register-link" style="margin-top:8px;border-color:rgba(255,165,0,0.1);">
+    <span data-en="&#x1F3E0; Back to Home" data-hi="&#x1F3E0; होम पर वापस जाएं">&#x1F3E0; Back to Home</span>
+    <span class="arrow">&rarr;</span>
+  </a>
 </div>
 </div>
 <script>
@@ -1676,12 +1735,16 @@ body::before{
   font-size:0.75rem;color:rgba(255,255,255,0.3);text-align:center;margin-top:14px;
   padding:10px;background:rgba(255,255,255,0.02);border-radius:10px;line-height:1.5;
 }
+.nav-row{
+  display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center;
+}
 .back-link{
   display:flex;align-items:center;justify-content:center;gap:6px;
-  margin-top:16px;padding:10px;color:rgba(255,215,0,0.7);font-size:0.84rem;
+  padding:10px 14px;color:rgba(255,215,0,0.7);font-size:0.82rem;
   text-decoration:none;font-weight:500;border-radius:10px;transition:all 0.2s;
+  border:1px solid rgba(255,165,0,0.1);flex:1;min-width:100px;
 }
-.back-link:hover{color:#FFD700;background:rgba(255,165,0,0.08);}
+.back-link:hover{color:#FFD700;background:rgba(255,165,0,0.08);border-color:rgba(255,165,0,0.25);}
 @media(max-width:480px){
   .card{padding:24px 18px;border-radius:20px;}
   .card-header h1{font-size:1.15rem;}
@@ -1742,7 +1805,11 @@ body::before{
     <button type="submit" class="submit-btn" data-en="&#x2714; Update Registration" data-hi="&#x2714; पंजीकरण अपडेट करें">&#x2714; Update Registration</button>
   </form>
   <div class="note" data-en="Reducing attendees will cancel extra passes. Increasing will assign new ones if seats are available." data-hi="उपस्थित कम करने से अतिरिक्त पास रद्द होंगे। बढ़ाने से नए पास मिलेंगे यदि सीटें उपलब्ध हैं।">Reducing attendees will cancel extra passes. Increasing will assign new ones if seats are available.</div>
-  <a href="/my-passes?phone={{ phone }}" class="back-link" data-en="&larr; Back to My Passes" data-hi="&larr; मेरे पास पर वापस जाएं">&larr; Back to My Passes</a>
+  <div class="nav-row">
+    <a href="/my-passes?phone={{ phone }}" class="back-link" data-en="&#x1F3AB; My Passes" data-hi="&#x1F3AB; मेरे पास">&#x1F3AB; My Passes</a>
+    <a href="/register" class="back-link" data-en="&#x1F4DD; Register" data-hi="&#x1F4DD; पंजीकरण">&#x1F4DD; Register</a>
+    <a href="/" class="back-link" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
+  </div>
 </div>
 </div>
 <script>
