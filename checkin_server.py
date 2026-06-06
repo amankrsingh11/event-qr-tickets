@@ -151,18 +151,31 @@ def _get_gspread():
     return _gspread_client
 
 
+def _get_or_create_worksheet(sh, title, headers):
+    """Get a worksheet by name, creating it with headers if it doesn't exist."""
+    import gspread
+    try:
+        return sh.worksheet(title)
+    except gspread.exceptions.WorksheetNotFound:
+        ws = sh.add_worksheet(title=title, rows=1000, cols=len(headers))
+        ws.append_row(headers)
+        return ws
+
+
 def sheet_append_registration(date_str, name, phone, attendees, invitee_name, ticket_serials):
     if not GOOGLE_SHEETS_ENABLED:
         return
     try:
         gc = _get_gspread()
         sh = gc.open_by_key(GOOGLE_SHEET_ID)
-        ws = sh.worksheet("Registrations")
+        ws = _get_or_create_worksheet(sh, "Registrations",
+            ["Date", "Time", "Name", "Phone", "Attendees", "Invitee Name", "Tickets"])
         time_str = now_ist().strftime("%I:%M %p")
         serials_str = ", ".join(f"#{s:03d}" for s in ticket_serials)
-        ws.append_row([date_str, time_str, name, phone, attendees, invitee_name, serials_str])
+        ws.append_row([date_str, time_str, name, phone, str(attendees), invitee_name, serials_str])
     except Exception as e:
         print(f"Google Sheets (registration) error: {e}", flush=True)
+        import traceback; traceback.print_exc()
 
 
 def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone):
@@ -171,11 +184,13 @@ def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone):
     try:
         gc = _get_gspread()
         sh = gc.open_by_key(GOOGLE_SHEET_ID)
-        ws = sh.worksheet("Check-ins")
+        ws = _get_or_create_worksheet(sh, "Check-ins",
+            ["Date", "Time", "Ticket #", "Ticket ID", "Name", "Phone"])
         time_str = now_ist().strftime("%I:%M %p")
         ws.append_row([date_str, time_str, f"#{serial:03d}", ticket_id, reg_name, reg_phone])
     except Exception as e:
         print(f"Google Sheets (checkin) error: {e}", flush=True)
+        import traceback; traceback.print_exc()
 
 
 # ---------------------------------------------------------------------------
