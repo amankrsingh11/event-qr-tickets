@@ -637,7 +637,6 @@ WA_LOGIN_HTML = """
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WhatsApp Bot Login</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -664,11 +663,11 @@ WA_LOGIN_HTML = """
   #qr-canvas {
     background: #fff;
     border-radius: 12px;
-    padding: 16px;
+    padding: 20px;
     display: inline-block;
     margin-bottom: 20px;
   }
-  #qr-canvas canvas { display: block; width: 300px !important; height: 300px !important; }
+  #qr-canvas img { display: block; width: 300px; height: 300px; }
   .status { font-size: 0.9rem; color: #10b981; }
   .status.waiting { color: #f59e0b; }
   .steps { text-align: left; margin-top: 20px; font-size: 0.85rem; color: #9ca3af; line-height: 1.8; }
@@ -691,21 +690,31 @@ WA_LOGIN_HTML = """
 <script>
 async function fetchQR() {
   try {
-    const resp = await fetch('/api/wa-qr');
-    const data = await resp.json();
-    if (data.status === 'ok' && data.qr) {
-      document.getElementById('qr-canvas').innerHTML = '';
-      QRCode.toCanvas(data.qr, { width: 400, margin: 3 }, function(err, canvas) {
-        if (!err) document.getElementById('qr-canvas').appendChild(canvas);
-      });
-      document.getElementById('status').textContent = 'Waiting for scan...';
-      document.getElementById('status').className = 'status waiting';
-      setTimeout(fetchQR, 20000);
+    const resp = await fetch('/api/wa-qr-image');
+    if (resp.ok) {
+      const ctype = resp.headers.get('content-type');
+      if (ctype && ctype.includes('image/png')) {
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        document.getElementById('qr-canvas').innerHTML = '<img src="' + url + '" alt="WhatsApp QR Code">';
+        document.getElementById('status').textContent = 'Waiting for scan...';
+        document.getElementById('status').className = 'status waiting';
+        setTimeout(fetchQR, 15000);
+      } else {
+        const data = await resp.json();
+        if (data.status === 'connected') {
+          document.getElementById('qr-canvas').innerHTML = '<div style="padding:60px;color:#10b981;font-size:4rem;">&#10003;</div>';
+          document.getElementById('status').textContent = 'Bot is connected!';
+          document.getElementById('status').className = 'status';
+          setTimeout(fetchQR, 10000);
+        } else {
+          document.getElementById('status').textContent = 'Waiting for bot to generate QR...';
+          setTimeout(fetchQR, 3000);
+        }
+      }
     } else {
-      document.getElementById('qr-canvas').innerHTML = '<div style="padding:40px;color:#10b981;font-size:3rem;">&#10003;</div>';
-      document.getElementById('status').textContent = 'Bot is connected!';
-      document.getElementById('status').className = 'status';
-      setTimeout(fetchQR, 10000);
+      document.getElementById('status').textContent = 'Cannot reach bot. Retrying...';
+      setTimeout(fetchQR, 5000);
     }
   } catch (e) {
     document.getElementById('status').textContent = 'Cannot reach bot. Is it running?';
@@ -733,6 +742,48 @@ def wa_qr_proxy():
         return jsonify(data)
     except Exception:
         return jsonify({"status": "error", "message": "Bot not reachable"})
+
+
+@app.route("/api/wa-qr-image")
+def wa_qr_image():
+    """Get QR data from bot and return a PNG image."""
+    try:
+        resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr", timeout=5)
+        data = json.loads(resp.read())
+
+        if data.get("status") == "ok" and data.get("qr"):
+            import io
+            qr_obj = qrcode.QRCode(box_size=10, border=4)
+            qr_obj.add_data(data["qr"])
+            qr_obj.make(fit=True)
+            img = qr_obj.make_image(fill_color="black", back_color="white")
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            buf.seek(0)
+            return buf.read(), 200, {"Content-Type": "image/png"}
+        elif data.get("status") == "no_qr":
+            return jsonify({"status": "connected"})
+        else:
+            return jsonify({"status": "waiting"})
+    except Exception:
+        return jsonify({"status": "error", "message": "Bot not reachable"})
+
+
+@app.route("/api/wa-qr-image")
+def wa_qr_image():
+    """Generate a QR code PNG image from the bot's QR data."""
+    try:
+        resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr", timeout=5)
+        data = json.loads(resp.read())
+        if data.get("status") == "ok" and data.get("qr"):
+            img = qrcode.make(data["qr"], box_size=10, border=3)
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            buf.seek(0)
+            return buf.getvalue(), 200, {"Content-Type": "image/png"}
+        return jsonify({"status": "connected" if data.get("status") == "no_qr" else "waiting"})
+    except Exception:
+        return jsonify({"status": "error", "message": "Bot not reachable"}), 503
 
 
 @app.route("/")
