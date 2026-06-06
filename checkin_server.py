@@ -35,9 +35,11 @@ def today_ist():
 
 
 def is_registration_open():
-    """Registration open 8:00 AM to 2:00 PM IST."""
+    """Registration open 1:35 AM to 2:00 PM IST (testing window)."""
     t = now_ist()
-    return 8 <= t.hour < 14
+    if t.hour == 1 and t.minute >= 35:
+        return True
+    return 2 <= t.hour < 14
 
 
 # ---------------------------------------------------------------------------
