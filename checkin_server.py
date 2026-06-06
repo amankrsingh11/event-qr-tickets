@@ -625,9 +625,11 @@ def notify_bot(phone, tickets_data, name):
             )
             resp = urllib.request.urlopen(req, timeout=15)
             result = json.loads(resp.read())
-            print(f"  Bot delivery #{t['serial']:03d}: {result}")
-        except (urllib.error.URLError, Exception) as e:
-            print(f"  Bot delivery #{t['serial']:03d} failed (QR still shown on web): {e}")
+            print(f"  Bot delivery #{t['serial']:03d}: {result}", flush=True)
+        except Exception as e:
+            print(f"  Bot delivery #{t['serial']:03d} failed: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
 
 
 WA_LOGIN_HTML = """
@@ -845,7 +847,7 @@ def register_submit():
     save_registrations()
 
     serials_str = ", ".join(f"#{t['serial']:03d}" for t in tickets_data)
-    print(f"✔ Registered: {name} ({phone}) → {attendees} ticket(s): {serials_str}")
+    print(f"✔ Registered: {name} ({phone}) → {attendees} ticket(s): {serials_str}", flush=True)
 
     notify_bot(phone, tickets_data, name)
 
