@@ -212,6 +212,36 @@ def find_registration_by_ticket(date_str, ticket_id):
                 return reg["name"], phone
     return "Unknown", "Unknown"
 
+
+def _append_scan_log(date_str, serial, name, time_str, ok):
+    """Store recent scan in Redis/local for cross-device visibility."""
+    key = f"scan_log:{date_str}"
+    entry = {"serial": serial, "name": name, "time": time_str, "ok": ok}
+    if USE_REDIS:
+        raw = _get_redis().get(key)
+        scans = json.loads(raw) if raw else []
+        scans.insert(0, entry)
+        scans = scans[:30]
+        _get_redis().set(key, json.dumps(scans))
+    else:
+        path = os.path.join(LOCAL_DATA_DIR, f"scan_log_{date_str}.json")
+        scans = _load_json_file(path) if os.path.exists(path) else []
+        if not isinstance(scans, list):
+            scans = []
+        scans.insert(0, entry)
+        scans = scans[:30]
+        _save_json_file(path, scans)
+
+
+def _load_scan_log(date_str):
+    key = f"scan_log:{date_str}"
+    if USE_REDIS:
+        raw = _get_redis().get(key)
+        return json.loads(raw) if raw else []
+    path = os.path.join(LOCAL_DATA_DIR, f"scan_log_{date_str}.json")
+    data = _load_json_file(path)
+    return data if isinstance(data, list) else []
+
 # ---------------------------------------------------------------------------
 # Shared CSS for religious theme
 # ---------------------------------------------------------------------------
@@ -315,12 +345,12 @@ SCANNER_HTML = """
 let scanner,scanning=true;
 document.getElementById('todayDate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 function initScanner(){scanner=new Html5Qrcode("reader");scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:250}},onScanSuccess,()=>{}).catch(()=>{document.getElementById("reader").innerHTML='<p style="padding:40px;text-align:center;color:#ef4444;">Camera access denied.</p>';});}
-async function onScanSuccess(t){if(!scanning)return;scanning=false;scanner.pause(true);try{const r=await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticket_id:t})});const d=await r.json();showResult(d,t);refreshStats();}catch(e){showResult({status:"error"},t);}}
-function showResult(d,t){const o=document.getElementById("resultOverlay"),i=document.getElementById("resultIcon"),tt=document.getElementById("resultTitle"),dd=document.getElementById("resultDetail"),tid=document.getElementById("resultTicketId");o.className="result-overlay show";tid.textContent=t;if(d.status==="ok"){o.classList.add("valid");i.textContent="\\u2713";tt.textContent="WELCOME!";dd.textContent="Entry #"+d.serial+" \\u2014 "+d.entry_number+" of "+d.total;addLog(t,true,d.serial);}else if(d.status==="already_used"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="ALREADY USED";dd.textContent="Scanned at "+d.used_at;addLog(t,false,"DUP");}else if(d.status==="wrong_day"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="WRONG DAY";dd.textContent="Not valid today.";addLog(t,false,"WRONG DAY");}else{o.classList.add("unknown");i.textContent="?";tt.textContent="INVALID";dd.textContent="QR not recognized.";addLog(t,false,"INVALID");}}
+async function onScanSuccess(t){if(!scanning)return;scanning=false;scanner.pause(true);try{const r=await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticket_id:t})});const d=await r.json();showResult(d,t);refreshStats();refreshLog();}catch(e){showResult({status:"error"},t);}}
+function showResult(d,t){const o=document.getElementById("resultOverlay"),i=document.getElementById("resultIcon"),tt=document.getElementById("resultTitle"),dd=document.getElementById("resultDetail"),tid=document.getElementById("resultTicketId");o.className="result-overlay show";tid.textContent=t;if(d.status==="ok"){o.classList.add("valid");i.textContent="\\u2713";tt.textContent="WELCOME!";dd.textContent="Entry #"+d.serial+" \\u2014 "+d.entry_number+" of "+d.total;}else if(d.status==="already_used"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="ALREADY USED";dd.textContent="Scanned at "+d.used_at;}else if(d.status==="wrong_day"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="WRONG DAY";dd.textContent="Not valid today.";}else{o.classList.add("unknown");i.textContent="?";tt.textContent="INVALID";dd.textContent="QR not recognized.";}}
 function dismissResult(){document.getElementById("resultOverlay").className="result-overlay";scanning=true;scanner.resume();}
-function addLog(t,ok,info){const c=document.getElementById("logEntries"),time=new Date().toLocaleTimeString(),div=document.createElement("div");div.className="log-entry "+(ok?"ok":"fail");div.innerHTML='<span>'+(ok?"\\u2713":"\\u2717")+' '+t.substring(0,20)+'...</span><span>'+info+' \\u00b7 '+time+'</span>';c.prepend(div);if(c.children.length>20)c.lastChild.remove();}
-async function refreshStats(){const r=await fetch("/api/stats"),d=await r.json();document.getElementById("checkedIn").textContent=d.used;document.getElementById("totalTickets").textContent=d.total;document.getElementById("remaining").textContent=d.remaining;}
-document.addEventListener("DOMContentLoaded",()=>{refreshStats();initScanner();});
+async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("checkedIn").textContent=d.used;document.getElementById("totalTickets").textContent=d.total;document.getElementById("remaining").textContent=d.remaining;}catch(e){}}
+async function refreshLog(){try{const r=await fetch("/api/recent-scans"),d=await r.json();const c=document.getElementById("logEntries");c.innerHTML='';d.scans.forEach(s=>{const div=document.createElement("div");div.className="log-entry "+(s.ok?"ok":"fail");div.innerHTML='<span>'+(s.ok?"\\u2713":"\\u2717")+' #'+String(s.serial).padStart(3,'0')+' '+s.name+'</span><span>'+s.time+'</span>';c.appendChild(div);});}catch(e){}}
+document.addEventListener("DOMContentLoaded",()=>{refreshStats();refreshLog();initScanner();setInterval(()=>{refreshStats();refreshLog();},5000);});
 </script>
 </body>
 </html>
@@ -953,11 +983,19 @@ def checkin():
 
     reg_name, reg_phone = find_registration_by_ticket(date_str, ticket_id)
     sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone)
+    _append_scan_log(date_str, serial, reg_name, now_str, True)
 
     return jsonify({
         "status": "ok", "serial": serial,
         "entry_number": len(used_tickets), "total": len(valid_tickets),
     })
+
+
+@app.route("/api/recent-scans")
+def recent_scans():
+    date_str = today_ist()
+    scans = _load_scan_log(date_str)
+    return jsonify({"scans": scans[:20]})
 
 
 @app.route("/api/stats")
