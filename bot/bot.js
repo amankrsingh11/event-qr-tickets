@@ -5,9 +5,14 @@ const path = require("path");
 const fs = require("fs");
 
 // ── Config ────────────────────────────────────────────────────
-const FLASK_PORT = 5000;
+const FLASK_PORT = process.env.PORT || 5000;
 const BOT_API_PORT = 3001;
-const SERVER_HOST = process.env.SERVER_HOST || "localhost";
+
+// Railway sets RAILWAY_PUBLIC_DOMAIN automatically (e.g. your-app.up.railway.app)
+const PUBLIC_DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN;
+const BASE_URL = PUBLIC_DOMAIN
+  ? `https://${PUBLIC_DOMAIN}`
+  : `http://${process.env.SERVER_HOST || "localhost"}:${FLASK_PORT}`;
 
 const GREETINGS = ["hi", "hello", "hey", "register", "start", "ticket"];
 
@@ -48,7 +53,7 @@ client.on("message", async (msg) => {
 
   // Preserve the full chat ID (handles both @c.us and @lid formats)
   const chatId = msg.from;
-  const registrationUrl = `http://${SERVER_HOST}:${FLASK_PORT}/register?phone=${encodeURIComponent(chatId)}`;
+  const registrationUrl = `${BASE_URL}/register?phone=${encodeURIComponent(chatId)}`;
 
   const replyText =
     `Hey there! 👋 Welcome to the event!\n\n` +
