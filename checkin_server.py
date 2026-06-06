@@ -18,7 +18,7 @@ from flask import Flask, request, jsonify, render_template_string, redirect, mak
 
 app = Flask(__name__)
 
-TOTAL_CAPACITY = 250
+TOTAL_CAPACITY = 50
 TICKET_SECRET = os.environ.get("TICKET_SECRET", "katha-qr-2026-secret")
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -580,6 +580,23 @@ REGISTER_HTML = """
   }
   .spots-left { text-align: center; margin-top: 16px; font-size: 0.85rem; color: rgba(255,255,255,0.5); }
   .spots-left span { color: #FFD700; font-weight: 700; }
+  .housefull {
+    background: rgba(200,30,30,0.2); border: 2px solid rgba(255,80,80,0.4); border-radius: 14px;
+    padding: 20px; text-align: center; margin-bottom: 20px;
+  }
+  .housefull .hf-icon { font-size: 2.5rem; margin-bottom: 8px; }
+  .housefull .hf-title { font-size: 1.2rem; font-weight: 800; color: #ff6b6b; margin-bottom: 4px; }
+  .housefull .hf-sub { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+  .form-group.disabled label { color: rgba(255,255,255,0.3); }
+  .form-group.disabled input, .form-group.disabled select {
+    background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.2);
+    border-color: rgba(255,165,0,0.1); pointer-events: none;
+  }
+  .link-row { text-align: center; margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,165,0,0.15); }
+  .link-row a {
+    color: #FFD700; font-size: 0.88rem; text-decoration: none; font-weight: 600;
+  }
+  .link-row a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -603,18 +620,26 @@ REGISTER_HTML = """
 
   {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
 
+  {% if spots_left <= 0 %}
+  <div class="housefull">
+    <div class="hf-icon">&#x1F6AB;</div>
+    <div class="hf-title" data-en="HOUSEFULL" data-hi="हाउसफुल">HOUSEFULL</div>
+    <div class="hf-sub" data-en="All seats for today's Katha have been booked." data-hi="आज की कथा की सभी सीटें बुक हो चुकी हैं।">All seats for today's Katha have been booked.</div>
+  </div>
+  {% endif %}
+
   <form method="POST" action="/register" id="regForm">
-    <div class="form-group">
+    <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
       <label data-en="Full Name *" data-hi="पूरा नाम *">Full Name *</label>
-      <input type="text" name="name" required data-ph-en="Your full name" data-ph-hi="अपना पूरा नाम लिखें" placeholder="Your full name" value="{{ prev.name or '' }}">
+      <input type="text" name="name" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="Your full name" data-ph-hi="अपना पूरा नाम लिखें" placeholder="Your full name" value="{{ prev.name or '' }}">
     </div>
-    <div class="form-group">
+    <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
       <label data-en="Phone Number *" data-hi="फ़ोन नंबर *">Phone Number *</label>
-      <input type="tel" name="phone" required placeholder="e.g. 9876543210" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.phone or '' }}">
+      <input type="tel" name="phone" {{ 'disabled' if spots_left <= 0 }} required placeholder="e.g. 9876543210" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.phone or '' }}">
     </div>
-    <div class="form-group">
+    <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
       <label data-en="Number of Attendees * (max 5)" data-hi="उपस्थित लोगों की संख्या * (अधिकतम 5)">Number of Attendees * (max 5)</label>
-      <select name="attendees" required>
+      <select name="attendees" {{ 'disabled' if spots_left <= 0 }} required>
         <option value="" data-en="Select" data-hi="चुनें">Select</option>
         <option value="1" {{ 'selected' if prev.attendees == '1' }}>1</option>
         <option value="2" {{ 'selected' if prev.attendees == '2' }}>2</option>
@@ -623,9 +648,9 @@ REGISTER_HTML = """
         <option value="5" {{ 'selected' if prev.attendees == '5' }}>5</option>
       </select>
     </div>
-    <div class="form-group">
+    <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
       <label data-en="Invitee Name *" data-hi="निमंत्रणकर्ता का नाम *">Invitee Name *</label>
-      <select name="invitee_name" required>
+      <select name="invitee_name" {{ 'disabled' if spots_left <= 0 }} required>
         <option value="" data-en="Select" data-hi="चुनें">Select</option>
         <option value="Arun Gupta Ji" {{ 'selected' if prev.invitee_name == 'Arun Gupta Ji' }}>Arun Gupta Ji</option>
         <option value="Sheena Aron Ji" {{ 'selected' if prev.invitee_name == 'Sheena Aron Ji' }}>Sheena Aron Ji</option>
@@ -634,9 +659,13 @@ REGISTER_HTML = """
         <option value="Rama Shankar Ji" {{ 'selected' if prev.invitee_name == 'Rama Shankar Ji' }}>Rama Shankar Ji</option>
       </select>
     </div>
-    <button type="submit" class="submit-btn" id="submitBtn" data-en="&#x1F64F; REGISTER & GET QR PASS" data-hi="&#x1F64F; पंजीकरण करें और QR पास पाएं">&#x1F64F; REGISTER & GET QR PASS</button>
+    <button type="submit" class="submit-btn" id="submitBtn" {{ 'disabled' if spots_left <= 0 }} data-en="&#x1F64F; REGISTER & GET QR PASS" data-hi="&#x1F64F; पंजीकरण करें और QR पास पाएं">&#x1F64F; REGISTER & GET QR PASS</button>
   </form>
   <div class="spots-left"><span>{{ spots_left }}</span> <span data-en="spots remaining out of" data-hi="शेष, कुल में से">spots remaining out of</span> {{ total }}</div>
+
+  <div class="link-row">
+    <a href="/my-passes" data-en="&#x1F4F1; Already registered? View your passes" data-hi="&#x1F4F1; पहले से पंजीकृत? अपने पास देखें">&#x1F4F1; Already registered? View your passes</a>
+  </div>
 </div>
 <script>
 function setLang(lang) {
@@ -723,6 +752,12 @@ SUCCESS_HTML = """
     padding: 12px; font-size: 0.85rem; color: #6b4c3b; margin-top: 20px;
   }
   .notice strong { color: #BF360C; }
+  .update-link {
+    display: block; text-align: center; margin-top: 16px; padding: 12px;
+    color: #2E7D32; font-size: 0.88rem; font-weight: 600; text-decoration: none;
+    border: 2px solid #A5D6A7; border-radius: 12px; transition: all 0.2s;
+  }
+  .update-link:hover { background: #E8F5E9; }
   .btn-row {
     display: flex; gap: 10px; margin-top: 10px; justify-content: center; flex-wrap: wrap;
   }
@@ -801,6 +836,8 @@ SUCCESS_HTML = """
   <div class="notice" data-en="Each person must show their own QR at the gate. <strong>Valid today only. One-time use.</strong>" data-hi="प्रत्येक व्यक्ति को गेट पर अपना QR दिखाना होगा। <strong>केवल आज के लिए वैध। एक बार उपयोग।</strong>">
     Each person must show their own QR at the gate. <strong>Valid today only. One-time use.</strong>
   </div>
+
+  <a href="/update-registration?phone={{ phone }}" class="update-link" data-en="&#x270F; Update Registration (change attendees / invitee)" data-hi="&#x270F; पंजीकरण अपडेट करें (उपस्थित / निमंत्रणकर्ता बदलें)">&#x270F; Update Registration (change attendees / invitee)</a>
 </div>
 <script>
 const TICKETS = {{ tickets_json | safe }};
@@ -1245,31 +1282,306 @@ def register_submit():
 
     tickets_json = json.dumps(tickets_data)
     return render_template_string(SUCCESS_HTML,
-        name=name, tickets=tickets_data, attendees=attendees,
+        name=name, phone=phone, tickets=tickets_data, attendees=attendees,
         invitee_name=invitee_name, date_str=date_str, date_display=date_display,
         tickets_json=tickets_json)
+
+
+MY_PASSES_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Passes | Shrimad Bhagwat Katha</title>
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#1a0a00;background:radial-gradient(ellipse at 50% 30%,#3a1a00 0%,#1a0a00 70%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.card{
+  background:rgba(255,255,255,0.07);border-radius:20px;padding:36px 28px;
+  width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  border-top:5px solid #FF8C00;backdrop-filter:blur(12px);
+  border:1px solid rgba(255,165,0,0.15);text-align:center;
+}
+.lang-toggle{display:flex;justify-content:flex-end;margin-bottom:12px;}
+.lang-btn{
+  padding:5px 14px;border:2px solid rgba(255,165,0,0.5);font-size:0.78rem;
+  font-weight:600;cursor:pointer;background:transparent;color:rgba(255,255,255,0.7);transition:all 0.2s;
+}
+.lang-btn.active{background:rgba(255,165,0,0.25);color:#FFD700;border-color:#FF8C00;}
+.lang-btn:first-child{border-radius:20px 0 0 20px;}
+.lang-btn:last-child{border-radius:0 20px 20px 0;}
+.icon{font-size:3rem;margin-bottom:12px;}
+h1{font-size:1.3rem;color:#FFD700;margin-bottom:6px;}
+.sub{font-size:0.85rem;color:rgba(255,255,255,0.5);margin-bottom:24px;}
+.form-group{margin-bottom:16px;text-align:left;}
+.form-group label{display:block;font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px;}
+.form-group input{
+  width:100%;padding:14px;border:2px solid rgba(255,165,0,0.3);border-radius:10px;
+  font-size:1.1rem;color:#fff;background:rgba(255,255,255,0.06);outline:none;
+  text-align:center;letter-spacing:2px;
+}
+.form-group input::placeholder{color:rgba(255,255,255,0.3);letter-spacing:0;}
+.form-group input:focus{border-color:#FF8C00;background:rgba(255,255,255,0.1);}
+.submit-btn{
+  width:100%;padding:14px;background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
+  color:#fff;font-size:1rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(255,140,0,0.3);transition:transform 0.15s;
+}
+.submit-btn:hover{transform:translateY(-1px);}
+.error-msg{
+  background:rgba(200,30,30,0.15);border:1px solid rgba(255,100,100,0.3);color:#ff8a8a;
+  padding:12px;border-radius:10px;font-size:0.9rem;margin-bottom:18px;
+}
+.back-link{display:block;margin-top:20px;color:#FFD700;font-size:0.85rem;text-decoration:none;}
+.back-link:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('en')">English</button>
+    <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
+  </div>
+  <div class="icon">&#x1F4F1;</div>
+  <h1 data-en="View My Passes" data-hi="मेरे पास देखें">View My Passes</h1>
+  <div class="sub" data-en="Enter your registered phone number to view your QR passes" data-hi="अपने QR पास देखने के लिए पंजीकृत फ़ोन नंबर दर्ज करें">Enter your registered phone number to view your QR passes</div>
+  {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
+  <form method="GET" action="/my-passes">
+    <div class="form-group">
+      <label data-en="Phone Number" data-hi="फ़ोन नंबर">Phone Number</label>
+      <input type="tel" name="phone" required placeholder="e.g. 9876543210" pattern="[0-9]{10}" value="{{ phone or '' }}">
+    </div>
+    <button type="submit" class="submit-btn" data-en="&#x1F50D; View Passes" data-hi="&#x1F50D; पास देखें">&#x1F50D; View Passes</button>
+  </form>
+  <a href="/register" class="back-link" data-en="&larr; Back to Registration" data-hi="&larr; पंजीकरण पर वापस जाएं">&larr; Back to Registration</a>
+</div>
+<script>
+function setLang(lang){
+  localStorage.setItem('katha_lang',lang);
+  document.querySelectorAll('[data-en]').forEach(function(el){el.innerHTML=el.getAttribute('data-'+lang)||el.getAttribute('data-en');});
+  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
+}
+(function(){var l=localStorage.getItem('katha_lang')||'en';setLang(l);})();
+</script>
+</body>
+</html>
+"""
+
+UPDATE_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Update Registration | Shrimad Bhagwat Katha</title>
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#1a0a00;background:radial-gradient(ellipse at 50% 30%,#3a1a00 0%,#1a0a00 70%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.card{
+  background:rgba(255,255,255,0.07);border-radius:20px;padding:36px 28px;
+  width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  border-top:5px solid #FF8C00;backdrop-filter:blur(12px);
+  border:1px solid rgba(255,165,0,0.15);
+}
+.lang-toggle{display:flex;justify-content:flex-end;margin-bottom:12px;}
+.lang-btn{
+  padding:5px 14px;border:2px solid rgba(255,165,0,0.5);font-size:0.78rem;
+  font-weight:600;cursor:pointer;background:transparent;color:rgba(255,255,255,0.7);transition:all 0.2s;
+}
+.lang-btn.active{background:rgba(255,165,0,0.25);color:#FFD700;border-color:#FF8C00;}
+.lang-btn:first-child{border-radius:20px 0 0 20px;}
+.lang-btn:last-child{border-radius:0 20px 20px 0;}
+.card-header{text-align:center;margin-bottom:20px;}
+.card-header h1{font-size:1.3rem;color:#FFD700;margin-bottom:4px;}
+.card-header .sub{font-size:0.85rem;color:rgba(255,255,255,0.5);}
+.current-info{
+  background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.25);border-radius:12px;
+  padding:14px;margin-bottom:20px;font-size:0.85rem;color:rgba(255,255,255,0.7);
+}
+.current-info .row{display:flex;justify-content:space-between;padding:4px 0;}
+.current-info .label{color:rgba(255,255,255,0.5);}
+.current-info .value{color:#FFD700;font-weight:600;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px;}
+.form-group input,.form-group select{
+  width:100%;padding:12px 14px;border:2px solid rgba(255,165,0,0.3);border-radius:10px;
+  font-size:1rem;color:#fff;background:rgba(255,255,255,0.06);outline:none;
+}
+.form-group select option{background:#2a1a0a;color:#fff;}
+.form-group input:focus,.form-group select:focus{border-color:#FF8C00;background:rgba(255,255,255,0.1);}
+.submit-btn{
+  width:100%;padding:14px;background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
+  color:#fff;font-size:1rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(255,140,0,0.3);margin-top:8px;
+}
+.submit-btn:hover{transform:translateY(-1px);}
+.error-msg{
+  background:rgba(200,30,30,0.15);border:1px solid rgba(255,100,100,0.3);color:#ff8a8a;
+  padding:12px;border-radius:10px;font-size:0.9rem;margin-bottom:18px;text-align:center;
+}
+.success-msg{
+  background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#6ee7b7;
+  padding:12px;border-radius:10px;font-size:0.9rem;margin-bottom:18px;text-align:center;
+}
+.back-link{display:block;text-align:center;margin-top:18px;color:#FFD700;font-size:0.85rem;text-decoration:none;}
+.back-link:hover{text-decoration:underline;}
+.note{font-size:0.78rem;color:rgba(255,255,255,0.35);text-align:center;margin-top:12px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('en')">English</button>
+    <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
+  </div>
+  <div class="card-header">
+    <h1 data-en="Update Registration" data-hi="पंजीकरण अपडेट करें">Update Registration</h1>
+    <div class="sub" data-en="Modify your attendees or invitee name" data-hi="उपस्थित संख्या या निमंत्रणकर्ता बदलें">Modify your attendees or invitee name</div>
+  </div>
+
+  {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
+  {% if success %}<div class="success-msg">{{ success }}</div>{% endif %}
+
+  <div class="current-info">
+    <div class="row"><span class="label" data-en="Name" data-hi="नाम">Name</span><span class="value">{{ reg.name }}</span></div>
+    <div class="row"><span class="label" data-en="Phone" data-hi="फ़ोन">Phone</span><span class="value">{{ phone }}</span></div>
+    <div class="row"><span class="label" data-en="Current Attendees" data-hi="वर्तमान उपस्थित">Current Attendees</span><span class="value">{{ reg.attendees }}</span></div>
+    <div class="row"><span class="label" data-en="Current Invitee" data-hi="वर्तमान निमंत्रणकर्ता">Current Invitee</span><span class="value">{{ reg.invitee_name }}</span></div>
+  </div>
+
+  <form method="POST" action="/update-registration">
+    <input type="hidden" name="phone" value="{{ phone }}">
+    <div class="form-group">
+      <label data-en="Full Name" data-hi="पूरा नाम">Full Name</label>
+      <input type="text" name="name" required value="{{ reg.name }}">
+    </div>
+    <div class="form-group">
+      <label data-en="Number of Attendees (max 5)" data-hi="उपस्थित लोगों की संख्या (अधिकतम 5)">Number of Attendees (max 5)</label>
+      <select name="attendees" required>
+        <option value="1" {{ 'selected' if reg.attendees|int == 1 }}>1</option>
+        <option value="2" {{ 'selected' if reg.attendees|int == 2 }}>2</option>
+        <option value="3" {{ 'selected' if reg.attendees|int == 3 }}>3</option>
+        <option value="4" {{ 'selected' if reg.attendees|int == 4 }}>4</option>
+        <option value="5" {{ 'selected' if reg.attendees|int == 5 }}>5</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label data-en="Invitee Name" data-hi="निमंत्रणकर्ता का नाम">Invitee Name</label>
+      <select name="invitee_name" required>
+        <option value="Arun Gupta Ji" {{ 'selected' if reg.invitee_name == 'Arun Gupta Ji' }}>Arun Gupta Ji</option>
+        <option value="Sheena Aron Ji" {{ 'selected' if reg.invitee_name == 'Sheena Aron Ji' }}>Sheena Aron Ji</option>
+        <option value="Ankit Ji" {{ 'selected' if reg.invitee_name == 'Ankit Ji' }}>Ankit Ji</option>
+        <option value="Sanjay Ji" {{ 'selected' if reg.invitee_name == 'Sanjay Ji' }}>Sanjay Ji</option>
+        <option value="Rama Shankar Ji" {{ 'selected' if reg.invitee_name == 'Rama Shankar Ji' }}>Rama Shankar Ji</option>
+      </select>
+    </div>
+    <button type="submit" class="submit-btn" data-en="&#x2714; Update Registration" data-hi="&#x2714; पंजीकरण अपडेट करें">&#x2714; Update Registration</button>
+  </form>
+  <div class="note" data-en="Reducing attendees will cancel extra passes. Increasing may assign new ones." data-hi="उपस्थित कम करने से अतिरिक्त पास रद्द होंगे। बढ़ाने से नए पास मिल सकते हैं।">Reducing attendees will cancel extra passes. Increasing may assign new ones.</div>
+  <a href="/my-passes?phone={{ phone }}" class="back-link" data-en="&larr; Back to My Passes" data-hi="&larr; मेरे पास पर वापस जाएं">&larr; Back to My Passes</a>
+</div>
+<script>
+function setLang(lang){
+  localStorage.setItem('katha_lang',lang);
+  document.querySelectorAll('[data-en]').forEach(function(el){el.innerHTML=el.getAttribute('data-'+lang)||el.getAttribute('data-en');});
+  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
+}
+(function(){var l=localStorage.getItem('katha_lang')||'en';setLang(l);})();
+</script>
+</body>
+</html>
+"""
 
 
 @app.route("/my-passes")
 def my_passes():
     phone = request.args.get("phone", "").strip()
     date_str = request.args.get("date", today_ist())
-    date_display_dt = datetime.strptime(date_str, "%Y-%m-%d")
-    date_display = date_display_dt.strftime("%A, %d %B %Y")
+
+    if not phone:
+        return render_template_string(MY_PASSES_HTML, error=None, phone="")
+
+    if len(phone) != 10 or not phone.isdigit():
+        return render_template_string(MY_PASSES_HTML, error="Please enter a valid 10-digit phone number.", phone=phone)
 
     registrations = load_registrations(date_str)
     if phone not in registrations:
-        return render_template_string(REGISTER_HTML,
-            date_display=date_display, spots_left=TOTAL_CAPACITY - total_attendees_registered(registrations),
-            total=TOTAL_CAPACITY, error="No registration found for this phone number today.",
-            prev={"name": "", "phone": phone, "attendees": "", "invitee_name": ""})
+        return render_template_string(MY_PASSES_HTML, error="No registration found for this phone number today.", phone=phone)
 
     reg = registrations[phone]
+    date_display = datetime.strptime(date_str, "%Y-%m-%d").strftime("%A, %d %B %Y")
     tickets_json = json.dumps(reg["tickets"])
     return render_template_string(SUCCESS_HTML,
-        name=reg["name"], tickets=reg["tickets"], attendees=reg["attendees"],
+        name=reg["name"], phone=phone, tickets=reg["tickets"], attendees=reg["attendees"],
         invitee_name=reg["invitee_name"], date_str=date_str, date_display=date_display,
         tickets_json=tickets_json)
+
+
+@app.route("/update-registration", methods=["GET", "POST"])
+def update_registration():
+    date_str = today_ist()
+    registrations = load_registrations(date_str)
+
+    if request.method == "GET":
+        phone = request.args.get("phone", "").strip()
+        if not phone or phone not in registrations:
+            return redirect("/my-passes")
+        reg = registrations[phone]
+        return render_template_string(UPDATE_HTML, reg=reg, phone=phone, error=None, success=None)
+
+    phone = request.form.get("phone", "").strip()
+    if phone not in registrations:
+        return redirect("/my-passes")
+
+    reg = registrations[phone]
+    old_attendees = int(reg["attendees"])
+
+    new_name = request.form.get("name", "").strip()
+    new_attendees = int(request.form.get("attendees", str(old_attendees)).strip())
+    new_invitee = request.form.get("invitee_name", reg["invitee_name"]).strip()
+
+    if new_attendees < 1 or new_attendees > 5:
+        return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
+            error="Attendees must be between 1 and 5.", success=None)
+
+    if new_attendees > old_attendees:
+        extra_needed = new_attendees - old_attendees
+        spots_left = TOTAL_CAPACITY - total_attendees_registered(registrations)
+        if spots_left < extra_needed:
+            return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
+                error=f"Only {spots_left} spots left. Cannot add {extra_needed} more.", success=None)
+        available = get_next_available_tickets(extra_needed, date_str, registrations)
+        if len(available) < extra_needed:
+            return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
+                error="Not enough passes available.", success=None)
+        for serial, ticket_id in available:
+            reg["tickets"].append({"serial": serial, "ticket_id": ticket_id})
+    elif new_attendees < old_attendees:
+        reg["tickets"] = reg["tickets"][:new_attendees]
+
+    if new_name:
+        reg["name"] = new_name
+    reg["attendees"] = new_attendees
+    reg["invitee_name"] = new_invitee
+    registrations[phone] = reg
+    save_registrations(date_str, registrations)
+    print(f"Updated registration: {reg['name']} ({phone}) -> {new_attendees} attendees [{date_str}]", flush=True)
+
+    return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
+        error=None, success="Registration updated successfully!")
 
 
 @app.route("/qr-image/<date_str>/<int:serial>")
