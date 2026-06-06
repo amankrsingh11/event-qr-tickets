@@ -488,42 +488,117 @@ ALREADY_REGISTERED_HTML = """
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Already Registered | Shrimad Bhagwat Katha</title>
-<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #FFF8E1, #FFE0B2, #FFCC80);
-    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
-  }
-  .card {
-    background: #fff; border-radius: 20px; padding: 36px 28px;
-    width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(139,26,26,0.15); text-align: center;
-    border-top: 5px solid #CC5500;
-  }
-  .icon { font-size: 3rem; margin-bottom: 12px; }
-  h1 { font-size: 1.3rem; color: #8B1A1A; margin-bottom: 8px; }
-  .msg {
-    background: #FFF3E0; border: 1px solid #FFCC80; border-radius: 10px;
-    padding: 14px; font-size: 0.9rem; color: #BF360C; margin-bottom: 20px;
-  }
-  .msg strong { display: block; margin-bottom: 4px; }
-  .link-btn {
-    display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #CC5500, #8B1A1A);
-    color: #fff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem;
-  }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#1a0a00;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;
+}
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 50% 30%,rgba(255,140,0,0.1) 0%,transparent 60%);
+  pointer-events:none;
+}
+.page{position:relative;z-index:1;width:100%;max-width:480px;}
+.lang-toggle{display:flex;justify-content:flex-end;margin-bottom:10px;}
+.lang-btn{
+  padding:6px 16px;border:1.5px solid rgba(255,165,0,0.4);font-size:0.75rem;
+  font-weight:600;cursor:pointer;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);
+  transition:all 0.2s;
+}
+.lang-btn.active{background:rgba(255,165,0,0.2);color:#FFD700;border-color:#FF8C00;}
+.lang-btn:first-child{border-radius:20px 0 0 20px;}
+.lang-btn:last-child{border-radius:0 20px 20px 0;}
+.card{
+  background:linear-gradient(145deg,rgba(42,26,10,0.9),rgba(26,10,0,0.95));
+  border-radius:24px;padding:36px 28px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,165,0,0.1);
+  border:1px solid rgba(255,165,0,0.12);position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,#8B1A1A,#CC5500,#FF8C00,#FFD700,#FF8C00,#CC5500,#8B1A1A);
+}
+.status-icon{
+  width:72px;height:72px;border-radius:50%;margin:0 auto 16px;
+  background:linear-gradient(135deg,rgba(255,165,0,0.15),rgba(255,140,0,0.08));
+  display:flex;align-items:center;justify-content:center;font-size:2.2rem;
+  border:2px solid rgba(255,165,0,0.2);
+}
+h1{font-family:'Playfair Display',serif;font-size:1.35rem;color:#FFD700;margin-bottom:12px;}
+.msg{
+  background:rgba(255,165,0,0.06);border:1px solid rgba(255,165,0,0.15);border-radius:14px;
+  padding:18px;margin-bottom:20px;line-height:1.6;
+}
+.msg .name{font-size:1rem;color:#FFD700;font-weight:700;margin-bottom:4px;}
+.msg .detail{font-size:0.88rem;color:rgba(255,255,255,0.6);}
+.msg .passes{
+  display:inline-block;margin-top:8px;padding:5px 16px;
+  background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.2);
+  border-radius:20px;font-size:0.82rem;color:#FFD700;font-weight:600;
+}
+.actions{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
+.btn-primary{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:15px;border-radius:14px;text-decoration:none;font-weight:700;font-size:1rem;
+  color:#fff;background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
+  box-shadow:0 6px 24px rgba(255,140,0,0.3);transition:all 0.2s;position:relative;overflow:hidden;
+}
+.btn-primary::after{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+  transition:left 0.5s ease;
+}
+.btn-primary:hover::after{left:100%;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(255,140,0,0.45);}
+.btn-row{display:flex;gap:8px;}
+.btn-secondary{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px;border-radius:12px;text-decoration:none;font-weight:600;font-size:0.84rem;
+  color:rgba(255,215,0,0.7);border:1px solid rgba(255,165,0,0.15);transition:all 0.2s;
+}
+.btn-secondary:hover{color:#FFD700;border-color:rgba(255,165,0,0.3);background:rgba(255,165,0,0.06);}
+@media(max-width:480px){
+  .card{padding:28px 20px;border-radius:20px;}
+  .btn-row{flex-direction:column;}
+}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="icon">&#x1F64F;</div>
-  <h1>Already Registered!</h1>
-  <div class="msg">
-    <strong>{{ name }}, this phone number is already registered for today's Katha.</strong>
-    You have {{ attendees }} pass{{ 'es' if attendees|int > 1 else '' }} assigned.
-  </div>
-  <a class="link-btn" href="/my-passes?phone={{ phone }}&date={{ date_str }}">View My Passes</a>
+<div class="page">
+<div class="lang-toggle">
+  <button class="lang-btn active" onclick="setLang('en')">English</button>
+  <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
 </div>
+<div class="card">
+  <div class="status-icon">&#x1F64F;</div>
+  <h1 data-en="Already Registered!" data-hi="पहले से पंजीकृत!">Already Registered!</h1>
+  <div class="msg">
+    <div class="name">{{ name }}</div>
+    <div class="detail" data-en="This phone number is already registered for today's Katha." data-hi="यह फ़ोन नंबर आज की कथा के लिए पहले से पंजीकृत है।">This phone number is already registered for today's Katha.</div>
+    <div class="passes" data-en="{{ attendees }} pass{{ 'es' if attendees|int > 1 else '' }} assigned" data-hi="{{ attendees }} पास आवंटित">{{ attendees }} pass{{ 'es' if attendees|int > 1 else '' }} assigned</div>
+  </div>
+  <div class="actions">
+    <a class="btn-primary" href="/my-passes?phone={{ phone }}&date={{ date_str }}" data-en="&#x1F3AB; View My Passes" data-hi="&#x1F3AB; मेरे पास देखें">&#x1F3AB; View My Passes</a>
+    <div class="btn-row">
+      <a class="btn-secondary" href="/update-registration?phone={{ phone }}" data-en="&#x270F; Update" data-hi="&#x270F; अपडेट">&#x270F; Update</a>
+      <a class="btn-secondary" href="/register" data-en="&#x1F4DD; Register" data-hi="&#x1F4DD; पंजीकरण">&#x1F4DD; Register</a>
+      <a class="btn-secondary" href="/" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
+    </div>
+  </div>
+</div>
+</div>
+<script>
+function setLang(lang){
+  localStorage.setItem('katha_lang',lang);
+  document.querySelectorAll('[data-en]').forEach(function(el){el.innerHTML=el.getAttribute('data-'+lang)||el.getAttribute('data-en');});
+  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
+}
+(function(){var l=localStorage.getItem('katha_lang')||'en';setLang(l);})();
+</script>
 </body>
 </html>
 """
@@ -724,7 +799,7 @@ body::before{
       <div class="info-icon">&#x1F4CD;</div>
       <div class="info-label" data-en="Venue" data-hi="स्थान">Venue</div>
       <div class="info-val" data-en="Gate 3, Katyayani Mandir<br>Chhatarpur, Delhi" data-hi="गेट 3, कात्यायनी मंदिर<br>छतरपुर, दिल्ली">Gate 3, Katyayani Mandir<br>Chhatarpur, Delhi</div>
-      <a href="https://www.google.com/maps/place/Sant+Baba+Nagpal+Hall+Gate+No.+3+Chhatarpur+Temple/@28.5038848,77.1782594,19.06z" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:0.68rem;color:#FFD700;text-decoration:none;opacity:0.7;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" data-en="&#x1F4CD; Open in Maps" data-hi="&#x1F4CD; मैप में देखें">&#x1F4CD; Open in Maps</a>
+      <a href="https://www.google.com/maps/place/Sant+Baba+Nagpal+Hall+Gate+No.+3+Chhatarpur+Temple/@28.5033616,77.1759681,17z" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:0.68rem;color:#FFD700;text-decoration:none;opacity:0.7;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" data-en="&#x1F4CD; Open in Maps" data-hi="&#x1F4CD; मैप में देखें">&#x1F4CD; Open in Maps</a>
     </div>
     <div class="info-item">
       <div class="info-icon">&#x23F0;</div>
@@ -1008,7 +1083,7 @@ h1{font-family:'Playfair Display',serif;font-size:1.35rem;color:#81C784;margin-b
   <div class="venue-info">
     <span data-en="<strong>Timing:</strong> 4:00 PM to 7:00 PM &mdash; Reach 15-30 min earlier" data-hi="<strong>समय:</strong> शाम 4:00 से 7:00 बजे तक &mdash; कृपया 15-30 मिनट पहले पहुँचें"></span><br>
     <span data-en="<strong>Venue:</strong> Gate No 3, Shri Adya Katyayani Shakti Peeth Mandir, Chhatarpur, New Delhi" data-hi="<strong>स्थान:</strong> गेट नं. 3, श्री आद्य कात्यायनी शक्ति पीठ मंदिर, छतरपुर, नई दिल्ली"></span><br>
-    <a href="https://www.google.com/maps/place/Sant+Baba+Nagpal+Hall+Gate+No.+3+Chhatarpur+Temple/@28.5038848,77.1782594,19.06z" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:0.72rem;color:#FFD700;text-decoration:none;" data-en="&#x1F4CD; View on Google Maps" data-hi="&#x1F4CD; गूगल मैप पर देखें">&#x1F4CD; View on Google Maps</a>
+    <a href="https://www.google.com/maps/place/Sant+Baba+Nagpal+Hall+Gate+No.+3+Chhatarpur+Temple/@28.5033616,77.1759681,17z" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:0.72rem;color:#FFD700;text-decoration:none;" data-en="&#x1F4CD; View on Google Maps" data-hi="&#x1F4CD; गूगल मैप पर देखें">&#x1F4CD; View on Google Maps</a>
   </div>
 
   <div class="qr-section">
@@ -1338,7 +1413,7 @@ body{
       <div class="icon">&#x1F4CD;</div>
       <div class="label" data-en="Venue" data-hi="स्थान">Venue</div>
       <div class="value" data-en="Gate No 3<br>Shri Adya Katyayani<br>Shakti Peeth Mandir<br>Chhatarpur, New Delhi" data-hi="गेट नं. 3<br>श्री आद्य कात्यायनी<br>शक्ति पीठ मंदिर<br>छतरपुर, नई दिल्ली">Gate No 3<br>Shri Adya Katyayani<br>Shakti Peeth Mandir<br>Chhatarpur, New Delhi</div>
-      <a href="https://www.google.com/maps/place/Sant+Baba+Nagpal+Hall+Gate+No.+3+Chhatarpur+Temple/@28.5038848,77.1782594,19.06z" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:0.72rem;color:#FFD700;text-decoration:none;padding:4px 12px;border:1px solid rgba(255,215,0,0.3);border-radius:16px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,215,0,0.1)'" onmouseout="this.style.background='transparent'" data-en="&#x1F4CD; Open in Maps" data-hi="&#x1F4CD; मैप में देखें">&#x1F4CD; Open in Maps</a>
+      <a href="https://www.google.com/maps/place/Sant+Baba+Nagpal+Hall+Gate+No.+3+Chhatarpur+Temple/@28.5033616,77.1759681,17z" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:0.72rem;color:#FFD700;text-decoration:none;padding:4px 12px;border:1px solid rgba(255,215,0,0.3);border-radius:16px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,215,0,0.1)'" onmouseout="this.style.background='transparent'" data-en="&#x1F4CD; Open in Maps" data-hi="&#x1F4CD; मैप में देखें">&#x1F4CD; Open in Maps</a>
     </div>
     <div class="info-card">
       <div class="icon">&#x1F64F;</div>
