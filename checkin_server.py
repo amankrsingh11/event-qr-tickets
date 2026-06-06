@@ -14,7 +14,7 @@ import hashlib
 import base64
 import qrcode
 from datetime import datetime, timezone, timedelta
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, redirect, make_response
 
 app = Flask(__name__)
 
@@ -259,6 +259,60 @@ THEME_CSS = """
 # ---------------------------------------------------------------------------
 # HTML Templates
 # ---------------------------------------------------------------------------
+
+SCANNER_LOGIN_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scanner Login | Shrimad Bhagwat Katha</title>
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1a0a00; color: #fff;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .card {
+    background: linear-gradient(135deg, #2a1a0a, #1a0a00);
+    border: 2px solid #CC5500; border-radius: 20px; padding: 40px 28px;
+    width: 100%; max-width: 380px; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .lock { font-size: 3rem; margin-bottom: 16px; }
+  h1 { font-size: 1.3rem; color: #FFD700; margin-bottom: 6px; }
+  p { color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 24px; }
+  input[type=password] {
+    width: 100%; padding: 14px; border: 2px solid #CC5500; border-radius: 10px;
+    background: rgba(255,255,255,0.05); color: #fff; font-size: 1rem;
+    outline: none; text-align: center; letter-spacing: 2px;
+  }
+  input[type=password]:focus { border-color: #FFD700; }
+  button {
+    width: 100%; padding: 14px; margin-top: 16px;
+    background: linear-gradient(135deg, #CC5500, #8B1A1A); color: #fff;
+    font-size: 1rem; font-weight: 700; border: none; border-radius: 10px; cursor: pointer;
+  }
+  .error { color: #ff6b6b; font-size: 0.85rem; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="lock">&#x1F512;</div>
+  <h1>Scanner Login</h1>
+  <p>Enter the admin password to access the check-in scanner</p>
+  <form method="POST" action="/scanner">
+    <input type="password" name="password" placeholder="Password" required autofocus>
+    <button type="submit">UNLOCK SCANNER</button>
+  </form>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+</div>
+</body>
+</html>
+"""
+
 
 SCANNER_HTML = """
 <!DOCTYPE html>
@@ -821,9 +875,28 @@ async function shareAll() {
 # Routes
 # ---------------------------------------------------------------------------
 
+SCANNER_PASSWORD = os.environ.get("SCANNER_PASSWORD", "Admin")
+
+
 @app.route("/")
 def index():
-    return render_template_string(SCANNER_HTML)
+    return redirect("/register")
+
+
+@app.route("/scanner", methods=["GET", "POST"])
+def scanner_page():
+    if request.method == "POST":
+        if request.form.get("password") == SCANNER_PASSWORD:
+            resp = make_response(render_template_string(SCANNER_HTML))
+            resp.set_cookie("scanner_auth", hashlib.sha256(SCANNER_PASSWORD.encode()).hexdigest(), max_age=86400)
+            return resp
+        return render_template_string(SCANNER_LOGIN_HTML, error="Incorrect password")
+
+    cookie = request.cookies.get("scanner_auth", "")
+    if cookie == hashlib.sha256(SCANNER_PASSWORD.encode()).hexdigest():
+        return render_template_string(SCANNER_HTML)
+
+    return render_template_string(SCANNER_LOGIN_HTML, error=None)
 
 
 @app.route("/register", methods=["GET"])
