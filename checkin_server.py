@@ -750,14 +750,13 @@ def wa_qr_image():
     try:
         resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr", timeout=5)
         data = json.loads(resp.read())
-
         if data.get("status") == "ok" and data.get("qr"):
-            import io
+            from io import BytesIO as BIO
             qr_obj = qrcode.QRCode(box_size=10, border=4)
             qr_obj.add_data(data["qr"])
             qr_obj.make(fit=True)
             img = qr_obj.make_image(fill_color="black", back_color="white")
-            buf = io.BytesIO()
+            buf = BIO()
             img.save(buf, format="PNG")
             buf.seek(0)
             return buf.read(), 200, {"Content-Type": "image/png"}
@@ -767,23 +766,6 @@ def wa_qr_image():
             return jsonify({"status": "waiting"})
     except Exception:
         return jsonify({"status": "error", "message": "Bot not reachable"})
-
-
-@app.route("/api/wa-qr-image")
-def wa_qr_image():
-    """Generate a QR code PNG image from the bot's QR data."""
-    try:
-        resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr", timeout=5)
-        data = json.loads(resp.read())
-        if data.get("status") == "ok" and data.get("qr"):
-            img = qrcode.make(data["qr"], box_size=10, border=3)
-            buf = BytesIO()
-            img.save(buf, format="PNG")
-            buf.seek(0)
-            return buf.getvalue(), 200, {"Content-Type": "image/png"}
-        return jsonify({"status": "connected" if data.get("status") == "no_qr" else "waiting"})
-    except Exception:
-        return jsonify({"status": "error", "message": "Bot not reachable"}), 503
 
 
 @app.route("/")
