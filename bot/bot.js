@@ -59,10 +59,16 @@ client.on("auth_failure", (msg) => {
   console.error("✕  Authentication failed:", msg);
 });
 
-client.on("message", async (msg) => {
+client.on("message_create", async (msg) => {
+  if (msg.fromMe) return;
+
+  console.log(`📩 Message from ${msg.from}: "${msg.body}"`);
   const body = msg.body.trim().toLowerCase();
 
-  if (!GREETINGS.some((g) => body.includes(g))) return;
+  if (!GREETINGS.some((g) => body.includes(g))) {
+    console.log(`   ↳ Ignored (no greeting keyword found)`);
+    return;
+  }
 
   // Preserve the full chat ID (handles both @c.us and @lid formats)
   const chatId = msg.from;
