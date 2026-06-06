@@ -1,38 +1,95 @@
 """
-Event Check-in Server
-- Registration form for attendees (linked from WhatsApp bot)
-- QR ticket assignment and delivery via WhatsApp
+Event Check-in Server (Vercel-compatible)
+- Registration form for attendees
+- QR ticket assignment with download/share
 - Door check-in scanner — each ticket works only ONCE
+- Uses Upstash Redis for persistence in serverless environments
+- Falls back to local JSON files when Redis is not configured
 """
 
 import os
 import csv
 import json
+import io
 import qrcode
-import urllib.request
-import urllib.error
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template_string, redirect
 
 app = Flask(__name__)
 
 DATA_DIR = "output"
-QR_IMAGES_DIR = os.path.join(DATA_DIR, "qr_images")
 MANIFEST_FILE = os.path.join(DATA_DIR, "ticket_manifest.csv")
-USED_FILE = os.path.join(DATA_DIR, "used_tickets.json")
-REGISTRATIONS_FILE = os.path.join(DATA_DIR, "registrations.json")
-
-BOT_API_URL = "http://localhost:3001"
 TOTAL_CAPACITY = 200
 
+# ---------------------------------------------------------------------------
+# Storage backend — Redis (Vercel/serverless) or local JSON files
+# ---------------------------------------------------------------------------
+
+USE_REDIS = bool(os.environ.get("UPSTASH_REDIS_REST_URL"))
+
+_redis_client = None
+
+
+def _get_redis():
+    global _redis_client
+    if _redis_client is None:
+        from upstash_redis import Redis
+        _redis_client = Redis(
+            url=os.environ["UPSTASH_REDIS_REST_URL"],
+            token=os.environ["UPSTASH_REDIS_REST_TOKEN"],
+        )
+    return _redis_client
+
+
+def _load_json_file(path):
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return {}
+
+
+def _save_json_file(path, data):
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def load_registrations():
+    if USE_REDIS:
+        raw = _get_redis().get("registrations")
+        return json.loads(raw) if raw else {}
+    return _load_json_file(os.path.join(DATA_DIR, "registrations.json"))
+
+
+def save_registrations(registrations):
+    if USE_REDIS:
+        _get_redis().set("registrations", json.dumps(registrations, ensure_ascii=False))
+    else:
+        _save_json_file(os.path.join(DATA_DIR, "registrations.json"), registrations)
+
+
+def load_used_tickets():
+    if USE_REDIS:
+        raw = _get_redis().get("used_tickets")
+        return json.loads(raw) if raw else {}
+    return _load_json_file(os.path.join(DATA_DIR, "used_tickets.json"))
+
+
+def save_used_tickets(used_tickets):
+    if USE_REDIS:
+        _get_redis().set("used_tickets", json.dumps(used_tickets))
+    else:
+        _save_json_file(os.path.join(DATA_DIR, "used_tickets.json"), used_tickets)
+
+
+# ---------------------------------------------------------------------------
+# Ticket manifest (static — loaded once from CSV bundled in the deployment)
+# ---------------------------------------------------------------------------
+
 valid_tickets = {}
-used_tickets = {}
-registrations = {}
-assigned_serials = set()
 
 
 def load_manifest():
-    """Load all valid ticket IDs from the manifest CSV."""
     global valid_tickets
     with open(MANIFEST_FILE, "r") as f:
         reader = csv.DictReader(f)
@@ -41,35 +98,52 @@ def load_manifest():
     print(f"Loaded {len(valid_tickets)} valid tickets")
 
 
-def load_used():
-    """Load previously used tickets (survives server restart)."""
-    global used_tickets
-    if os.path.exists(USED_FILE):
-        with open(USED_FILE, "r") as f:
-            used_tickets = json.load(f)
-        print(f"Loaded {len(used_tickets)} already-used tickets")
+load_manifest()
 
 
-def load_registrations():
-    global registrations, assigned_serials
-    if os.path.exists(REGISTRATIONS_FILE):
-        with open(REGISTRATIONS_FILE, "r") as f:
-            registrations = json.load(f)
-        for r in registrations.values():
-            for t in r.get("tickets", []):
-                assigned_serials.add(t["serial"])
-        print(f"Loaded {len(registrations)} registrations ({len(assigned_serials)} tickets assigned)")
+# ---------------------------------------------------------------------------
+# QR image generation (on-the-fly, no filesystem needed)
+# ---------------------------------------------------------------------------
+
+def generate_qr_bytes(ticket_id):
+    """Generate a QR code PNG and return the raw bytes."""
+    img = qrcode.make(ticket_id, box_size=10, border=2)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
 
 
-def save_registrations():
-    with open(REGISTRATIONS_FILE, "w") as f:
-        json.dump(registrations, f, indent=2, ensure_ascii=False)
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
+
+def get_assigned_serials(registrations):
+    serials = set()
+    for r in registrations.values():
+        for t in r.get("tickets", []):
+            serials.add(t["serial"])
+    return serials
 
 
-def save_used():
-    with open(USED_FILE, "w") as f:
-        json.dump(used_tickets, f, indent=2)
+def total_attendees_registered(registrations):
+    return sum(r["attendees"] for r in registrations.values())
 
+
+def get_next_available_tickets(count, registrations):
+    assigned = get_assigned_serials(registrations)
+    serial_to_ticket = {v: k for k, v in valid_tickets.items()}
+    tickets = []
+    for serial in sorted(serial_to_ticket.keys()):
+        if serial not in assigned:
+            tickets.append((serial, serial_to_ticket[serial]))
+            if len(tickets) >= count:
+                break
+    return tickets
+
+
+# ---------------------------------------------------------------------------
+# HTML Templates
+# ---------------------------------------------------------------------------
 
 SCANNER_HTML = """
 <!DOCTYPE html>
@@ -368,11 +442,6 @@ REGISTER_HTML = """
     border-color: #e94560;
     background: #fff;
   }
-  .form-group input[readonly] {
-    background: #f3f4f6;
-    color: #6b7280;
-    cursor: not-allowed;
-  }
   .form-group textarea { resize: vertical; min-height: 50px; }
   .submit-btn {
     width: 100%;
@@ -637,206 +706,26 @@ async function shareQR(serial, serialStr) {
 """
 
 
-def get_next_available_tickets(count):
-    """Find the next N unassigned tickets from the manifest."""
-    serial_to_ticket = {v: k for k, v in valid_tickets.items()}
-    tickets = []
-    for serial in sorted(serial_to_ticket.keys()):
-        if serial not in assigned_serials:
-            tickets.append((serial, serial_to_ticket[serial]))
-            if len(tickets) >= count:
-                break
-    return tickets
-
-
-def generate_qr_image(ticket_id, serial):
-    """Generate a QR code PNG for a specific ticket."""
-    os.makedirs(QR_IMAGES_DIR, exist_ok=True)
-    filepath = os.path.join(QR_IMAGES_DIR, f"ticket_{serial:03d}.png")
-    if not os.path.exists(filepath):
-        img = qrcode.make(ticket_id, box_size=10, border=2)
-        img.save(filepath)
-    return filepath
-
-
-def notify_bot(phone, tickets_data, name):
-    """Call the WhatsApp bot API to send QR images for all tickets."""
-    for t in tickets_data:
-        try:
-            payload = json.dumps({
-                "phone": phone,
-                "qr_image_path": t["qr_path"],
-                "ticket_id": t["ticket_id"],
-                "serial": t["serial"],
-                "name": name,
-            }).encode()
-            req = urllib.request.Request(
-                f"{BOT_API_URL}/send-qr",
-                data=payload,
-                headers={"Content-Type": "application/json"},
-            )
-            resp = urllib.request.urlopen(req, timeout=15)
-            result = json.loads(resp.read())
-            print(f"  Bot delivery #{t['serial']:03d}: {result}", flush=True)
-        except Exception as e:
-            print(f"  Bot delivery #{t['serial']:03d} failed: {e}", flush=True)
-            import traceback
-            traceback.print_exc()
-
-
-WA_LOGIN_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WhatsApp Bot Login</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #0f0f1a;
-    color: #fff;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .card {
-    background: #1a1a2e;
-    border-radius: 20px;
-    padding: 40px;
-    text-align: center;
-    max-width: 400px;
-    width: 100%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  }
-  h1 { font-size: 1.3rem; margin-bottom: 8px; }
-  .subtitle { color: #9ca3af; font-size: 0.9rem; margin-bottom: 24px; }
-  #qr-canvas {
-    background: #fff;
-    border-radius: 12px;
-    padding: 20px;
-    display: inline-block;
-    margin-bottom: 20px;
-  }
-  #qr-canvas img { display: block; width: 300px; height: 300px; }
-  .status { font-size: 0.9rem; color: #10b981; }
-  .status.waiting { color: #f59e0b; }
-  .steps { text-align: left; margin-top: 20px; font-size: 0.85rem; color: #9ca3af; line-height: 1.8; }
-  .steps b { color: #fff; }
-</style>
-</head>
-<body>
-<div class="card">
-  <h1>Link WhatsApp to Bot</h1>
-  <p class="subtitle">Scan this QR code with your phone</p>
-  <div id="qr-canvas"></div>
-  <div class="status waiting" id="status">Loading QR code...</div>
-  <div class="steps">
-    <b>1.</b> Open WhatsApp on your phone<br>
-    <b>2.</b> Go to Settings &rarr; Linked Devices<br>
-    <b>3.</b> Tap "Link a Device"<br>
-    <b>4.</b> Scan the QR code above
-  </div>
-</div>
-<script>
-async function fetchQR() {
-  try {
-    const resp = await fetch('/api/wa-qr-image');
-    if (resp.ok) {
-      const ctype = resp.headers.get('content-type');
-      if (ctype && ctype.includes('image/png')) {
-        const blob = await resp.blob();
-        const url = URL.createObjectURL(blob);
-        document.getElementById('qr-canvas').innerHTML = '<img src="' + url + '" alt="WhatsApp QR Code">';
-        document.getElementById('status').textContent = 'Scan this QR with WhatsApp!';
-        document.getElementById('status').className = 'status waiting';
-        setTimeout(fetchQR, 15000);
-      } else {
-        const data = await resp.json();
-        if (data.status === 'connected') {
-          document.getElementById('qr-canvas').innerHTML = '<div style="padding:60px;color:#10b981;font-size:4rem;">&#10003;</div>';
-          document.getElementById('status').textContent = 'Bot is connected! Send "Hi" to test.';
-          document.getElementById('status').className = 'status';
-          setTimeout(fetchQR, 10000);
-        } else if (data.status === 'disconnected') {
-          document.getElementById('qr-canvas').innerHTML = '<div style="padding:60px;color:#f59e0b;font-size:3rem;">⟳</div>';
-          document.getElementById('status').textContent = 'Reconnecting... QR will appear shortly.';
-          document.getElementById('status').className = 'status waiting';
-          setTimeout(fetchQR, 3000);
-        } else {
-          document.getElementById('status').textContent = 'Starting bot... please wait.';
-          document.getElementById('status').className = 'status waiting';
-          setTimeout(fetchQR, 3000);
-        }
-      }
-    } else {
-      document.getElementById('status').textContent = 'Cannot reach bot. Retrying...';
-      setTimeout(fetchQR, 5000);
-    }
-  } catch (e) {
-    document.getElementById('status').textContent = 'Cannot reach bot. Is it running?';
-    setTimeout(fetchQR, 5000);
-  }
-}
-fetchQR();
-</script>
-</body>
-</html>
-"""
-
-
-@app.route("/wa-login")
-def wa_login():
-    return render_template_string(WA_LOGIN_HTML)
-
-
-@app.route("/api/wa-qr")
-def wa_qr_proxy():
-    """Proxy the bot's QR endpoint so the browser can access it."""
-    try:
-        resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr", timeout=5)
-        data = json.loads(resp.read())
-        return jsonify(data)
-    except Exception:
-        return jsonify({"status": "error", "message": "Bot not reachable"})
-
-
-@app.route("/api/wa-qr-image")
-def wa_qr_image():
-    """Get QR PNG or status from the bot."""
-    try:
-        resp = urllib.request.urlopen(f"{BOT_API_URL}/wa-qr-png", timeout=5)
-        content_type = resp.headers.get("Content-Type", "")
-        data = resp.read()
-        if "image/png" in content_type:
-            return data, 200, {"Content-Type": "image/png"}
-        result = json.loads(data)
-        return jsonify(result)
-    except Exception:
-        return jsonify({"status": "error", "message": "Bot not reachable"})
-
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 
 @app.route("/")
 def index():
     return render_template_string(SCANNER_HTML)
 
 
-def total_attendees_registered():
-    return sum(r["attendees"] for r in registrations.values())
-
-
 @app.route("/register", methods=["GET"])
 def register_form():
     phone = request.args.get("phone", "").strip()
+    registrations = load_registrations()
+
     if phone in registrations:
         reg = registrations[phone]
         return render_template_string(SUCCESS_HTML,
             name=reg["name"], tickets=reg["tickets"], attendees=reg["attendees"])
 
-    spots_left = TOTAL_CAPACITY - total_attendees_registered()
+    spots_left = TOTAL_CAPACITY - total_attendees_registered(registrations)
     return render_template_string(REGISTER_HTML,
         phone=phone, spots_left=spots_left, total=TOTAL_CAPACITY,
         error=None, prev_name=None, prev_email=None, prev_reference=None)
@@ -849,7 +738,9 @@ def register_submit():
     email = request.form.get("email", "").strip()
     attendees = int(request.form.get("attendees", "1").strip())
     reference = request.form.get("reference", "").strip()
-    spots_left = TOTAL_CAPACITY - total_attendees_registered()
+
+    registrations = load_registrations()
+    spots_left = TOTAL_CAPACITY - total_attendees_registered(registrations)
 
     if phone in registrations:
         reg = registrations[phone]
@@ -868,7 +759,7 @@ def register_submit():
             error=f"Only {spots_left} spots left, but you requested {attendees}.",
             prev_name=name, prev_email=email, prev_phone=phone, prev_reference=reference)
 
-    available = get_next_available_tickets(attendees)
+    available = get_next_available_tickets(attendees, registrations)
     if len(available) < attendees:
         return render_template_string(REGISTER_HTML,
             phone=phone, spots_left=spots_left, total=TOTAL_CAPACITY,
@@ -877,12 +768,9 @@ def register_submit():
 
     tickets_data = []
     for serial, ticket_id in available:
-        qr_path = generate_qr_image(ticket_id, serial)
-        assigned_serials.add(serial)
         tickets_data.append({
             "serial": serial,
             "ticket_id": ticket_id,
-            "qr_path": qr_path,
         })
 
     registrations[phone] = {
@@ -893,10 +781,10 @@ def register_submit():
         "tickets": tickets_data,
         "registered_at": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
     }
-    save_registrations()
+    save_registrations(registrations)
 
     serials_str = ", ".join(f"#{t['serial']:03d}" for t in tickets_data)
-    print(f"✔ Registered: {name} ({phone}) → {attendees} ticket(s): {serials_str}", flush=True)
+    print(f"Registered: {name} ({phone}) -> {attendees} ticket(s): {serials_str}", flush=True)
 
     return render_template_string(SUCCESS_HTML,
         name=name, tickets=tickets_data, attendees=attendees)
@@ -904,12 +792,16 @@ def register_submit():
 
 @app.route("/qr-image/<int:serial>")
 def serve_qr_image(serial):
-    filepath = os.path.join(QR_IMAGES_DIR, f"ticket_{serial:03d}.png")
-    if os.path.exists(filepath):
-        with open(filepath, "rb") as f:
-            img_data = f.read()
-        return img_data, 200, {"Content-Type": "image/png"}
-    return "Not found", 404
+    """Generate and serve a QR code image on-the-fly."""
+    serial_to_ticket = {v: k for k, v in valid_tickets.items()}
+    ticket_id = serial_to_ticket.get(serial)
+    if not ticket_id:
+        return "Not found", 404
+    img_bytes = generate_qr_bytes(ticket_id)
+    return img_bytes, 200, {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=31536000, immutable",
+    }
 
 
 @app.route("/api/checkin", methods=["POST"])
@@ -919,6 +811,8 @@ def checkin():
 
     if ticket_id not in valid_tickets:
         return jsonify({"status": "invalid", "message": "Ticket not recognized"})
+
+    used_tickets = load_used_tickets()
 
     if ticket_id in used_tickets:
         return jsonify({
@@ -933,7 +827,7 @@ def checkin():
         "serial": valid_tickets[ticket_id],
         "used_at": now,
     }
-    save_used()
+    save_used_tickets(used_tickets)
 
     return jsonify({
         "status": "ok",
@@ -945,19 +839,22 @@ def checkin():
 
 @app.route("/api/stats")
 def stats():
-    total_attendees = total_attendees_registered()
+    registrations = load_registrations()
+    used_tickets = load_used_tickets()
+    total_att = total_attendees_registered(registrations)
     return jsonify({
         "total": len(valid_tickets),
         "used": len(used_tickets),
         "remaining": len(valid_tickets) - len(used_tickets),
-        "registered_people": total_attendees,
+        "registered_people": total_att,
         "registered_groups": len(registrations),
-        "spots_left": TOTAL_CAPACITY - total_attendees,
+        "spots_left": TOTAL_CAPACITY - total_att,
     })
 
 
 @app.route("/api/registrations")
 def api_registrations():
+    registrations = load_registrations()
     return jsonify({
         "total_registered": len(registrations),
         "total_capacity": TOTAL_CAPACITY,
@@ -966,15 +863,14 @@ def api_registrations():
 
 
 if __name__ == "__main__":
-    load_manifest()
-    load_used()
-    load_registrations()
     print("\n" + "=" * 50)
     print("  EVENT CHECK-IN SERVER")
     print("=" * 50)
+    regs = load_registrations()
     print(f"  Scanner:      http://localhost:5000")
     print(f"  Registration: http://localhost:5000/register")
-    print(f"  Registered:   {len(registrations)} / {TOTAL_CAPACITY}")
+    print(f"  Storage:      {'Redis (Upstash)' if USE_REDIS else 'Local JSON files'}")
+    print(f"  Registered:   {len(regs)} / {TOTAL_CAPACITY}")
     print("=" * 50 + "\n")
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)

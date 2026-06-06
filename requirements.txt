@@ -1,4 +1,4 @@
 qrcode[pil]
-reportlab
 Pillow
 flask
+upstash-redis
