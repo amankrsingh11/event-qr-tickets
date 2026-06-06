@@ -921,6 +921,171 @@ function setLang(lang) {
 """
 
 
+HOME_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shrimad Bhagwat Katha</title>
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:wght@400&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  min-height:100vh;overflow-x:hidden;
+  background:#1a0a00;color:#fff;
+}
+.hero{
+  position:relative;min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:40px 20px;
+  background:radial-gradient(ellipse at 50% 30%,#3a1a00 0%,#1a0a00 70%);
+  overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:radial-gradient(circle at 50% 50%,rgba(255,165,0,0.06) 0%,transparent 50%);
+  animation:glow 8s ease-in-out infinite alternate;
+}
+@keyframes glow{0%{transform:scale(1);opacity:0.5;}100%{transform:scale(1.2);opacity:1;}}
+.diya-row{display:flex;gap:20px;margin-bottom:20px;position:relative;z-index:1;}
+.diya{font-size:2rem;animation:flicker 2s ease-in-out infinite alternate;}
+.diya:nth-child(2){animation-delay:0.5s;}
+.diya:nth-child(3){animation-delay:1s;}
+@keyframes flicker{0%{opacity:0.7;transform:scale(1);}100%{opacity:1;transform:scale(1.1);}}
+.om{
+  font-family:'Tiro Devanagari Hindi',serif;font-size:4rem;color:#FF8C00;
+  text-shadow:0 0 40px rgba(255,140,0,0.5),0 0 80px rgba(255,140,0,0.2);
+  margin-bottom:8px;position:relative;z-index:1;
+}
+.hindi-title{
+  font-family:'Tiro Devanagari Hindi',serif;font-size:2.4rem;
+  color:#FFD700;line-height:1.3;margin-bottom:4px;position:relative;z-index:1;
+  text-shadow:0 2px 20px rgba(255,215,0,0.3);
+}
+.eng-title{
+  font-family:'Playfair Display',serif;font-size:1.6rem;color:rgba(255,255,255,0.85);
+  letter-spacing:3px;text-transform:uppercase;margin-bottom:20px;position:relative;z-index:1;
+}
+.divider{
+  width:120px;height:2px;margin:0 auto 24px;position:relative;z-index:1;
+  background:linear-gradient(90deg,transparent,#FF8C00,#FFD700,#FF8C00,transparent);
+}
+.verse{
+  font-family:'Tiro Devanagari Hindi',serif;font-size:1.15rem;
+  color:rgba(255,215,0,0.7);max-width:500px;line-height:1.8;
+  margin-bottom:28px;position:relative;z-index:1;font-style:italic;
+}
+.info-cards{
+  display:flex;flex-wrap:wrap;gap:14px;justify-content:center;
+  margin-bottom:32px;position:relative;z-index:1;max-width:520px;
+}
+.info-card{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,165,0,0.25);
+  border-radius:14px;padding:16px 20px;flex:1;min-width:140px;
+  backdrop-filter:blur(8px);
+}
+.info-card .icon{font-size:1.6rem;margin-bottom:6px;}
+.info-card .label{font-size:0.72rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.info-card .value{font-size:0.95rem;color:#FFD700;font-weight:600;line-height:1.4;}
+.register-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:18px 48px;font-size:1.15rem;font-weight:700;
+  color:#fff;border:none;border-radius:50px;cursor:pointer;
+  background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
+  box-shadow:0 8px 32px rgba(255,140,0,0.4),inset 0 1px 0 rgba(255,255,255,0.15);
+  text-decoration:none;position:relative;z-index:1;
+  transition:transform 0.2s,box-shadow 0.2s;letter-spacing:1px;
+}
+.register-btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(255,140,0,0.5);}
+.register-btn .arrow{font-size:1.3rem;transition:transform 0.2s;}
+.register-btn:hover .arrow{transform:translateX(4px);}
+.footer-text{
+  margin-top:36px;font-size:0.78rem;color:rgba(255,255,255,0.3);
+  position:relative;z-index:1;letter-spacing:0.5px;
+}
+.lang-toggle{
+  position:absolute;top:16px;right:16px;z-index:10;display:flex;
+}
+.lang-btn{
+  padding:5px 14px;border:2px solid rgba(255,165,0,0.5);font-size:0.78rem;
+  font-weight:600;cursor:pointer;background:transparent;color:rgba(255,255,255,0.7);transition:all 0.2s;
+}
+.lang-btn.active{background:rgba(255,165,0,0.25);color:#FFD700;border-color:#FF8C00;}
+.lang-btn:first-child{border-radius:20px 0 0 20px;}
+.lang-btn:last-child{border-radius:0 20px 20px 0;}
+@media(max-width:400px){
+  .hindi-title{font-size:1.8rem;}
+  .eng-title{font-size:1.2rem;}
+  .om{font-size:3rem;}
+  .register-btn{padding:16px 36px;font-size:1rem;}
+}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('en')">English</button>
+    <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
+  </div>
+
+  <div class="diya-row">
+    <span class="diya">&#x1F6D5;</span>
+    <span class="diya">&#x1F52F;</span>
+    <span class="diya">&#x1F6D5;</span>
+  </div>
+
+  <div class="om">&#x1F549;</div>
+  <div class="hindi-title">श्रीमद् भागवत कथा</div>
+  <div class="eng-title">Shrimad Bhagwat Katha</div>
+  <div class="divider"></div>
+
+  <div class="verse" data-en="Surrender unto the Lord with all your heart,<br>and He shall guide your path with His divine grace." data-hi="सर्वधर्मान्परित्यज्य मामेकं शरणं व्रज।<br>अहं त्वां सर्वपापेभ्यो मोक्षयिष्यामि मा शुचः॥">
+    Surrender unto the Lord with all your heart,<br>and He shall guide your path with His divine grace.
+  </div>
+
+  <div class="info-cards">
+    <div class="info-card">
+      <div class="icon">&#x1F4C5;</div>
+      <div class="label" data-en="Timing" data-hi="समय">Timing</div>
+      <div class="value" data-en="4:00 PM &ndash; 7:00 PM<br>Daily" data-hi="शाम 4:00 &ndash; 7:00 बजे<br>प्रतिदिन">4:00 PM &ndash; 7:00 PM<br>Daily</div>
+    </div>
+    <div class="info-card">
+      <div class="icon">&#x1F4CD;</div>
+      <div class="label" data-en="Venue" data-hi="स्थान">Venue</div>
+      <div class="value" data-en="Gate No 3<br>Shri Adya Katyayani<br>Shakti Peeth Mandir<br>Chhatarpur, New Delhi" data-hi="गेट नं. 3<br>श्री आद्य कात्यायनी<br>शक्ति पीठ मंदिर<br>छतरपुर, नई दिल्ली">Gate No 3<br>Shri Adya Katyayani<br>Shakti Peeth Mandir<br>Chhatarpur, New Delhi</div>
+    </div>
+    <div class="info-card">
+      <div class="icon">&#x1F64F;</div>
+      <div class="label" data-en="Entry" data-hi="प्रवेश">Entry</div>
+      <div class="value" data-en="Free Entry<br>with QR Pass" data-hi="निःशुल्क प्रवेश<br>QR पास के साथ">Free Entry<br>with QR Pass</div>
+    </div>
+  </div>
+
+  <a href="/register" class="register-btn" data-en="&#x1F64F; Register for Entry Pass <span class='arrow'>&rarr;</span>" data-hi="&#x1F64F; प्रवेश पास के लिए पंजीकरण करें <span class='arrow'>&rarr;</span>">
+    &#x1F64F; Register for Entry Pass <span class="arrow">&rarr;</span>
+  </a>
+
+  <div class="footer-text" data-en="Kindly reach 15-30 minutes before the Katha begins" data-hi="कृपया कथा शुरू होने से 15-30 मिनट पहले पहुँचें">
+    Kindly reach 15-30 minutes before the Katha begins
+  </div>
+</div>
+<script>
+function setLang(lang){
+  localStorage.setItem('katha_lang',lang);
+  document.querySelectorAll('[data-en]').forEach(function(el){
+    el.innerHTML=el.getAttribute('data-'+lang)||el.getAttribute('data-en');
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
+}
+(function(){var l=localStorage.getItem('katha_lang')||'en';setLang(l);})();
+</script>
+</body>
+</html>
+"""
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -930,7 +1095,7 @@ SCANNER_PASSWORD = os.environ.get("SCANNER_PASSWORD", "Admin")
 
 @app.route("/")
 def index():
-    return redirect("/register")
+    return render_template_string(HOME_HTML)
 
 
 @app.route("/scanner", methods=["GET", "POST"])
