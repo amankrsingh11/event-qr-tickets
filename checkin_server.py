@@ -34,9 +34,9 @@ def today_ist():
 
 def is_registration_open():
     t = now_ist()
-    if t.hour == 2 and t.minute >= 17:
+    if t.hour >= 2:
         return True
-    return 3 <= t.hour < 14
+    return False
 
 # ---------------------------------------------------------------------------
 # Daily ticket generation (deterministic per day + serial)
