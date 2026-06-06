@@ -34,9 +34,9 @@ def today_ist():
 
 def is_registration_open():
     t = now_ist()
-    if t.hour == 1 and t.minute >= 56:
+    if t.hour == 2 and t.minute >= 17:
         return True
-    return 2 <= t.hour < 14
+    return 3 <= t.hour < 14
 
 # ---------------------------------------------------------------------------
 # Daily ticket generation (deterministic per day + serial)
@@ -523,7 +523,14 @@ REGISTER_HTML = """
     </div>
     <div class="form-group">
       <label>Invitee Name *</label>
-      <input type="text" name="invitee_name" required placeholder="Who invited you?" value="{{ prev.invitee_name or '' }}">
+      <select name="invitee_name" required>
+        <option value="">Select</option>
+        <option value="Arun Gupta Ji" {{ 'selected' if prev.invitee_name == 'Arun Gupta Ji' }}>Arun Gupta Ji</option>
+        <option value="Sheena Aron Ji" {{ 'selected' if prev.invitee_name == 'Sheena Aron Ji' }}>Sheena Aron Ji</option>
+        <option value="Ankit Ji" {{ 'selected' if prev.invitee_name == 'Ankit Ji' }}>Ankit Ji</option>
+        <option value="Sanjay Ji" {{ 'selected' if prev.invitee_name == 'Sanjay Ji' }}>Sanjay Ji</option>
+        <option value="Rama Shankar Ji" {{ 'selected' if prev.invitee_name == 'Rama Shankar Ji' }}>Rama Shankar Ji</option>
+      </select>
     </div>
     <button type="submit" class="submit-btn" id="submitBtn">&#x1F64F; REGISTER & GET QR PASS</button>
   </form>
