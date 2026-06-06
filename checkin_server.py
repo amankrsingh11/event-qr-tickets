@@ -18,7 +18,7 @@ from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
 
-TOTAL_CAPACITY = 200
+TOTAL_CAPACITY = 250
 TICKET_SECRET = os.environ.get("TICKET_SECRET", "katha-qr-2026-secret")
 IST = timezone(timedelta(hours=5, minutes=30))
 
