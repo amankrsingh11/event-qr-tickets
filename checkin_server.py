@@ -153,7 +153,7 @@ def sheet_append_registration(date_str, name, phone, attendees, invitee_name, ti
     except Exception as e:
         print(f"Google Sheets (registration) error: {e}", flush=True)
 
-def sheet_append_update(date_str, name, phone, old_attendees, new_attendees, invitee_name, ticket_serials):
+def sheet_update_registration(date_str, name, phone, attendees, invitee_name, ticket_serials):
     if not GOOGLE_SHEETS_ENABLED:
         return
     try:
@@ -163,7 +163,16 @@ def sheet_append_update(date_str, name, phone, old_attendees, new_attendees, inv
             ["Date", "Time", "Name", "Phone", "Attendees", "Invitee Name", "Tickets"])
         time_str = now_ist().strftime("%I:%M %p")
         serials_str = ", ".join(f"#{s:03d}" for s in ticket_serials)
-        ws.append_row([date_str, time_str + " (UPDATE)", name, phone, f"{old_attendees} -> {new_attendees}", invitee_name, serials_str])
+        cell = ws.find(phone)
+        if cell:
+            row = cell.row
+            ws.update_cell(row, 2, time_str)
+            ws.update_cell(row, 3, name)
+            ws.update_cell(row, 5, str(attendees))
+            ws.update_cell(row, 6, invitee_name)
+            ws.update_cell(row, 7, serials_str)
+        else:
+            ws.append_row([date_str, time_str, name, phone, str(attendees), invitee_name, serials_str])
     except Exception as e:
         print(f"Google Sheets (update) error: {e}", flush=True)
 
@@ -1410,72 +1419,137 @@ MY_PASSES_HTML = """
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Passes | Shrimad Bhagwat Katha</title>
-<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  background:#1a0a00;background:radial-gradient(ellipse at 50% 30%,#3a1a00 0%,#1a0a00 70%);
-  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:#1a0a00;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;overflow-x:hidden;
 }
-.card{
-  background:rgba(255,255,255,0.07);border-radius:20px;padding:36px 28px;
-  width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.5);
-  border-top:5px solid #FF8C00;backdrop-filter:blur(12px);
-  border:1px solid rgba(255,165,0,0.15);text-align:center;
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 50% 20%,rgba(255,140,0,0.12) 0%,transparent 60%),
+             radial-gradient(ellipse at 20% 80%,rgba(139,26,26,0.08) 0%,transparent 50%);
+  pointer-events:none;
 }
-.lang-toggle{display:flex;justify-content:flex-end;margin-bottom:12px;}
+.page{position:relative;z-index:1;width:100%;max-width:480px;}
+.lang-toggle{display:flex;justify-content:flex-end;margin-bottom:10px;}
 .lang-btn{
-  padding:5px 14px;border:2px solid rgba(255,165,0,0.5);font-size:0.78rem;
-  font-weight:600;cursor:pointer;background:transparent;color:rgba(255,255,255,0.7);transition:all 0.2s;
+  padding:6px 16px;border:1.5px solid rgba(255,165,0,0.4);font-size:0.75rem;
+  font-weight:600;cursor:pointer;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);
+  transition:all 0.2s;backdrop-filter:blur(8px);
 }
-.lang-btn.active{background:rgba(255,165,0,0.25);color:#FFD700;border-color:#FF8C00;}
+.lang-btn.active{background:rgba(255,165,0,0.2);color:#FFD700;border-color:#FF8C00;}
 .lang-btn:first-child{border-radius:20px 0 0 20px;}
 .lang-btn:last-child{border-radius:0 20px 20px 0;}
-.icon{font-size:3rem;margin-bottom:12px;}
-h1{font-size:1.3rem;color:#FFD700;margin-bottom:6px;}
-.sub{font-size:0.85rem;color:rgba(255,255,255,0.5);margin-bottom:24px;}
-.form-group{margin-bottom:16px;text-align:left;}
-.form-group label{display:block;font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.75);margin-bottom:6px;}
-.form-group input{
-  width:100%;padding:14px;border:2px solid rgba(255,165,0,0.3);border-radius:10px;
-  font-size:1.1rem;color:#fff;background:rgba(255,255,255,0.06);outline:none;
-  text-align:center;letter-spacing:2px;
+.card{
+  background:linear-gradient(145deg,rgba(42,26,10,0.9),rgba(26,10,0,0.95));
+  border-radius:24px;padding:40px 28px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,165,0,0.1);
+  border:1px solid rgba(255,165,0,0.12);position:relative;overflow:hidden;
 }
-.form-group input::placeholder{color:rgba(255,255,255,0.3);letter-spacing:0;}
-.form-group input:focus{border-color:#FF8C00;background:rgba(255,255,255,0.1);}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,#8B1A1A,#CC5500,#FF8C00,#FFD700,#FF8C00,#CC5500,#8B1A1A);
+}
+.hero-icon{
+  width:80px;height:80px;margin:0 auto 16px;
+  background:linear-gradient(135deg,rgba(255,140,0,0.15),rgba(255,215,0,0.1));
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:2.4rem;border:2px solid rgba(255,165,0,0.2);
+}
+h1{font-family:'Playfair Display',serif;font-size:1.4rem;color:#FFD700;margin-bottom:6px;}
+.sub{font-size:0.88rem;color:rgba(255,255,255,0.45);margin-bottom:28px;line-height:1.5;max-width:320px;margin-left:auto;margin-right:auto;}
+.input-wrapper{position:relative;margin-bottom:18px;}
+.input-wrapper .phone-prefix{
+  position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  font-size:1rem;color:rgba(255,215,0,0.5);font-weight:600;pointer-events:none;
+}
+.input-wrapper input{
+  width:100%;padding:16px 16px 16px 52px;
+  border:2px solid rgba(255,165,0,0.2);border-radius:14px;
+  font-size:1.15rem;color:#fff;background:rgba(255,255,255,0.04);
+  outline:none;letter-spacing:3px;font-weight:500;
+  transition:all 0.3s ease;
+}
+.input-wrapper input::placeholder{color:rgba(255,255,255,0.2);letter-spacing:1px;font-weight:400;}
+.input-wrapper input:focus{
+  border-color:#FF8C00;background:rgba(255,255,255,0.07);
+  box-shadow:0 0 0 4px rgba(255,140,0,0.1);
+}
 .submit-btn{
-  width:100%;padding:14px;background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
-  color:#fff;font-size:1rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;
-  box-shadow:0 4px 20px rgba(255,140,0,0.3);transition:transform 0.15s;
+  width:100%;padding:16px;
+  background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
+  color:#fff;font-size:1.05rem;font-weight:700;border:none;border-radius:14px;
+  cursor:pointer;position:relative;overflow:hidden;
+  box-shadow:0 6px 24px rgba(255,140,0,0.3);transition:all 0.2s ease;
 }
-.submit-btn:hover{transform:translateY(-1px);}
+.submit-btn::after{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+  transition:left 0.5s ease;
+}
+.submit-btn:hover::after{left:100%;}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(255,140,0,0.45);}
 .error-msg{
-  background:rgba(200,30,30,0.15);border:1px solid rgba(255,100,100,0.3);color:#ff8a8a;
-  padding:12px;border-radius:10px;font-size:0.9rem;margin-bottom:18px;
+  background:rgba(200,30,30,0.12);border:1px solid rgba(255,100,100,0.25);color:#ff8a8a;
+  padding:14px 16px;border-radius:12px;font-size:0.88rem;margin-bottom:20px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
 }
-.back-link{display:block;margin-top:20px;color:#FFD700;font-size:0.85rem;text-decoration:none;}
-.back-link:hover{text-decoration:underline;}
+.divider-row{
+  display:flex;align-items:center;gap:12px;margin:24px 0 20px;
+}
+.divider-row .line{flex:1;height:1px;background:rgba(255,165,0,0.12);}
+.divider-row .or{font-size:0.72rem;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:1px;}
+.register-link{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px;border:1.5px solid rgba(255,165,0,0.15);border-radius:14px;
+  color:rgba(255,215,0,0.7);font-size:0.9rem;text-decoration:none;font-weight:600;
+  transition:all 0.2s;background:rgba(255,165,0,0.03);
+}
+.register-link:hover{border-color:rgba(255,165,0,0.3);color:#FFD700;background:rgba(255,165,0,0.06);}
+.register-link .arrow{transition:transform 0.2s;}
+.register-link:hover .arrow{transform:translateX(3px);}
+@media(max-width:480px){
+  .card{padding:32px 20px;border-radius:20px;}
+  h1{font-size:1.2rem;}
+  .input-wrapper input{font-size:1.05rem;padding:14px 14px 14px 48px;}
+}
 </style>
 </head>
 <body>
+<div class="page">
+<div class="lang-toggle">
+  <button class="lang-btn active" onclick="setLang('en')">English</button>
+  <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
+</div>
 <div class="card">
-  <div class="lang-toggle">
-    <button class="lang-btn active" onclick="setLang('en')">English</button>
-    <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
-  </div>
-  <div class="icon">&#x1F4F1;</div>
+  <div class="hero-icon">&#x1F3AB;</div>
   <h1 data-en="View My Passes" data-hi="मेरे पास देखें">View My Passes</h1>
-  <div class="sub" data-en="Enter your registered phone number to view your QR passes" data-hi="अपने QR पास देखने के लिए पंजीकृत फ़ोन नंबर दर्ज करें">Enter your registered phone number to view your QR passes</div>
-  {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
+  <div class="sub" data-en="Enter your registered phone number to retrieve your QR entry passes" data-hi="अपने QR प्रवेश पास देखने के लिए अपना पंजीकृत फ़ोन नंबर दर्ज करें">Enter your registered phone number to retrieve your QR entry passes</div>
+
+  {% if error %}<div class="error-msg">&#x26A0; {{ error }}</div>{% endif %}
+
   <form method="GET" action="/my-passes">
-    <div class="form-group">
-      <label data-en="Phone Number" data-hi="फ़ोन नंबर">Phone Number</label>
-      <input type="tel" name="phone" required placeholder="e.g. 9876543210" pattern="[0-9]{10}" value="{{ phone or '' }}">
+    <div class="input-wrapper">
+      <span class="phone-prefix">+91</span>
+      <input type="tel" name="phone" required placeholder="9876543210" pattern="[0-9]{10}" value="{{ phone or '' }}" autofocus>
     </div>
-    <button type="submit" class="submit-btn" data-en="&#x1F50D; View Passes" data-hi="&#x1F50D; पास देखें">&#x1F50D; View Passes</button>
+    <button type="submit" class="submit-btn" data-en="&#x1F50D; Find My Passes" data-hi="&#x1F50D; मेरे पास खोजें">&#x1F50D; Find My Passes</button>
   </form>
-  <a href="/register" class="back-link" data-en="&larr; Back to Registration" data-hi="&larr; पंजीकरण पर वापस जाएं">&larr; Back to Registration</a>
+
+  <div class="divider-row">
+    <div class="line"></div>
+    <span class="or" data-en="or" data-hi="या">or</span>
+    <div class="line"></div>
+  </div>
+
+  <a href="/register" class="register-link">
+    <span data-en="&#x1F64F; New here? Register for a pass" data-hi="&#x1F64F; नए हैं? पास के लिए पंजीकरण करें">&#x1F64F; New here? Register for a pass</span>
+    <span class="arrow">&rarr;</span>
+  </a>
+</div>
 </div>
 <script>
 function setLang(lang){
@@ -1759,7 +1833,7 @@ def update_registration():
     save_registrations(date_str, registrations)
     print(f"Updated registration: {reg['name']} ({phone}) -> {new_attendees} attendees [{date_str}]", flush=True)
     ticket_serials = [t["serial"] for t in reg["tickets"]]
-    sheet_append_update(date_str, reg["name"], phone, old_attendees, new_attendees, reg["invitee_name"], ticket_serials)
+    sheet_update_registration(date_str, reg["name"], phone, new_attendees, reg["invitee_name"], ticket_serials)
 
     return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
         error=None, success="Registration updated successfully!")
