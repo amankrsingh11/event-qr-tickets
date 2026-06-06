@@ -20,13 +20,12 @@ const BASE_URL = PUBLIC_DOMAIN
   ? `https://${PUBLIC_DOMAIN}`
   : `http://${process.env.SERVER_HOST || "localhost"}:${FLASK_PORT}`;
 
-const AUTH_DIR = path.resolve(__dirname, "wa_session", "baileys_auth");
+// Use a versioned auth dir so we can force a fresh session by bumping the version
+const AUTH_VERSION = process.env.WA_AUTH_VERSION || "v2";
+const AUTH_DIR = path.resolve(__dirname, "wa_session", `auth_${AUTH_VERSION}`);
 const logger = pino({ level: "warn" });
 
-if (process.env.RESET_WA_SESSION === "true" && fs.existsSync(AUTH_DIR)) {
-  console.log("⚠ RESET_WA_SESSION — clearing old session...");
-  fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-}
+console.log(`Auth dir: ${AUTH_DIR}`);
 
 // ── State ─────────────────────────────────────────────────────
 let sock = null;
