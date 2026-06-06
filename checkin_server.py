@@ -518,61 +518,68 @@ REGISTER_HTML = """
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #FFF8E1, #FFE0B2, #FFCC80);
+    background: #1a0a00; background: radial-gradient(ellipse at 50% 30%, #3a1a00 0%, #1a0a00 70%);
     min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
   }
   .card {
-    background: #fff; border-radius: 20px; padding: 36px 28px;
-    width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(139,26,26,0.15);
-    border-top: 5px solid #CC5500;
+    background: rgba(255,255,255,0.07); border-radius: 20px; padding: 36px 28px;
+    width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    border-top: 5px solid #FF8C00; backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,165,0,0.15);
   }
   .lang-toggle {
     display: flex; justify-content: flex-end; margin-bottom: 8px;
   }
   .lang-btn {
-    padding: 5px 14px; border: 2px solid #CC5500; border-radius: 20px; font-size: 0.78rem;
-    font-weight: 600; cursor: pointer; background: #fff; color: #CC5500; transition: all 0.2s;
+    padding: 5px 14px; border: 2px solid rgba(255,165,0,0.5); border-radius: 20px; font-size: 0.78rem;
+    font-weight: 600; cursor: pointer; background: transparent; color: rgba(255,255,255,0.7); transition: all 0.2s;
   }
-  .lang-btn.active { background: #CC5500; color: #fff; }
+  .lang-btn.active { background: rgba(255,165,0,0.25); color: #FFD700; border-color: #FF8C00; }
   .lang-btn:first-child { border-radius: 20px 0 0 20px; }
   .lang-btn:last-child { border-radius: 0 20px 20px 0; }
   .card-header { text-align: center; margin-bottom: 24px; }
   .greeting {
     font-family: 'Tiro Devanagari Hindi', serif;
-    font-size: 1.8rem; color: #CC5500; font-weight: 700; margin-bottom: 4px;
+    font-size: 1.8rem; color: #FF8C00; font-weight: 700; margin-bottom: 4px;
   }
-  .card-header h1 { font-size: 1.4rem; color: #8B1A1A; margin-bottom: 4px; }
-  .card-header .sub { font-size: 0.95rem; color: #8B1A1A; font-weight: 600; }
+  .card-header h1 { font-size: 1.4rem; color: #FFD700; margin-bottom: 4px; }
+  .card-header .sub { font-size: 0.95rem; color: #FFD700; font-weight: 600; }
   .accent-bar { width: 60px; height: 3px; background: linear-gradient(90deg, #CC5500, #FFD700); border-radius: 2px; margin: 10px auto; }
   .venue-info {
-    background: #FFF8E1; border: 1px solid #FFCC80; border-radius: 12px;
-    padding: 12px; margin-bottom: 20px; font-size: 0.82rem; color: #6b4c3b; text-align: center; line-height: 1.6;
+    background: rgba(255,165,0,0.08); border: 1px solid rgba(255,165,0,0.25); border-radius: 12px;
+    padding: 12px; margin-bottom: 20px; font-size: 0.82rem; color: rgba(255,255,255,0.7); text-align: center; line-height: 1.6;
   }
-  .venue-info strong { color: #8B1A1A; }
+  .venue-info strong { color: #FFD700; }
   .date-pill {
-    display: inline-block; padding: 5px 14px; background: #FFF3E0; color: #BF360C;
+    display: inline-block; padding: 5px 14px; background: rgba(255,165,0,0.15); color: #FFD700;
     border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 8px;
+    border: 1px solid rgba(255,165,0,0.3);
   }
   .form-group { margin-bottom: 16px; }
-  .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: #5D4037; margin-bottom: 6px; }
+  .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.75); margin-bottom: 6px; }
   .form-group input, .form-group select {
-    width: 100%; padding: 12px 14px; border: 2px solid #FFCC80; border-radius: 10px;
-    font-size: 1rem; color: #3E2723; background: #FFFDE7; transition: border-color 0.2s; outline: none;
+    width: 100%; padding: 12px 14px; border: 2px solid rgba(255,165,0,0.3); border-radius: 10px;
+    font-size: 1rem; color: #fff; background: rgba(255,255,255,0.06); transition: border-color 0.2s; outline: none;
   }
-  .form-group input:focus, .form-group select:focus { border-color: #CC5500; background: #fff; }
+  .form-group input::placeholder { color: rgba(255,255,255,0.35); }
+  .form-group select { color: rgba(255,255,255,0.85); }
+  .form-group select option { background: #2a1a0a; color: #fff; }
+  .form-group input:focus, .form-group select:focus { border-color: #FF8C00; background: rgba(255,255,255,0.1); }
   .submit-btn {
-    width: 100%; padding: 14px; background: linear-gradient(135deg, #CC5500, #8B1A1A);
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, #FF8C00, #CC5500, #8B1A1A);
     color: #fff; font-size: 1.05rem; font-weight: 700; border: none; border-radius: 12px;
     cursor: pointer; margin-top: 8px; transition: transform 0.15s, box-shadow 0.15s; letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px rgba(255,140,0,0.3);
   }
-  .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(204,85,0,0.4); }
-  .submit-btn:disabled { background: #bcaaa4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(255,140,0,0.5); }
+  .submit-btn:disabled { background: rgba(255,255,255,0.15); cursor: not-allowed; transform: none; box-shadow: none; color: rgba(255,255,255,0.4); }
   .error-msg {
-    background: #FBE9E7; border: 1px solid #FFAB91; color: #BF360C;
+    background: rgba(200,30,30,0.15); border: 1px solid rgba(255,100,100,0.3); color: #ff8a8a;
     padding: 12px; border-radius: 10px; font-size: 0.9rem; margin-bottom: 18px; text-align: center;
   }
-  .spots-left { text-align: center; margin-top: 16px; font-size: 0.85rem; color: #8D6E63; }
-  .spots-left span { color: #CC5500; font-weight: 700; }
+  .spots-left { text-align: center; margin-top: 16px; font-size: 0.85rem; color: rgba(255,255,255,0.5); }
+  .spots-left span { color: #FFD700; font-weight: 700; }
 </style>
 </head>
 <body>
