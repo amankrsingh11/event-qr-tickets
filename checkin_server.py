@@ -18,7 +18,7 @@ from flask import Flask, request, jsonify, render_template_string, redirect, mak
 
 app = Flask(__name__)
 
-TOTAL_CAPACITY = 50
+TOTAL_CAPACITY = 250
 TICKET_SECRET = os.environ.get("TICKET_SECRET", "katha-qr-2026-secret")
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -799,7 +799,6 @@ body::before{
       <div class="info-icon">&#x1F4CD;</div>
       <div class="info-label" data-en="Venue" data-hi="स्थान">Venue</div>
       <div class="info-val" data-en="Gate 3, Katyayani Mandir<br>Chhatarpur, Delhi" data-hi="गेट 3, कात्यायनी मंदिर<br>छतरपुर, दिल्ली">Gate 3, Katyayani Mandir<br>Chhatarpur, Delhi</div>
-      <a href="https://www.google.com/maps/place/Sant+Baba+Nagpal+Hall+Gate+No.+3+Chhatarpur+Temple/@28.5033616,77.1759681,17z" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:0.68rem;color:#FFD700;text-decoration:none;opacity:0.7;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" data-en="&#x1F4CD; Open in Maps" data-hi="&#x1F4CD; मैप में देखें">&#x1F4CD; Open in Maps</a>
     </div>
     <div class="info-item">
       <div class="info-icon">&#x23F0;</div>
@@ -1083,7 +1082,6 @@ h1{font-family:'Playfair Display',serif;font-size:1.35rem;color:#81C784;margin-b
   <div class="venue-info">
     <span data-en="<strong>Timing:</strong> 4:00 PM to 7:00 PM &mdash; Reach 15-30 min earlier" data-hi="<strong>समय:</strong> शाम 4:00 से 7:00 बजे तक &mdash; कृपया 15-30 मिनट पहले पहुँचें"></span><br>
     <span data-en="<strong>Venue:</strong> Gate No 3, Shri Adya Katyayani Shakti Peeth Mandir, Chhatarpur, New Delhi" data-hi="<strong>स्थान:</strong> गेट नं. 3, श्री आद्य कात्यायनी शक्ति पीठ मंदिर, छतरपुर, नई दिल्ली"></span><br>
-    <a href="https://www.google.com/maps/place/Sant+Baba+Nagpal+Hall+Gate+No.+3+Chhatarpur+Temple/@28.5033616,77.1759681,17z" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:0.72rem;color:#FFD700;text-decoration:none;" data-en="&#x1F4CD; View on Google Maps" data-hi="&#x1F4CD; गूगल मैप पर देखें">&#x1F4CD; View on Google Maps</a>
   </div>
 
   <div class="qr-section">
@@ -1413,7 +1411,6 @@ body{
       <div class="icon">&#x1F4CD;</div>
       <div class="label" data-en="Venue" data-hi="स्थान">Venue</div>
       <div class="value" data-en="Gate No 3<br>Shri Adya Katyayani<br>Shakti Peeth Mandir<br>Chhatarpur, New Delhi" data-hi="गेट नं. 3<br>श्री आद्य कात्यायनी<br>शक्ति पीठ मंदिर<br>छतरपुर, नई दिल्ली">Gate No 3<br>Shri Adya Katyayani<br>Shakti Peeth Mandir<br>Chhatarpur, New Delhi</div>
-      <a href="https://www.google.com/maps/place/Sant+Baba+Nagpal+Hall+Gate+No.+3+Chhatarpur+Temple/@28.5033616,77.1759681,17z" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:0.72rem;color:#FFD700;text-decoration:none;padding:4px 12px;border:1px solid rgba(255,215,0,0.3);border-radius:16px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,215,0,0.1)'" onmouseout="this.style.background='transparent'" data-en="&#x1F4CD; Open in Maps" data-hi="&#x1F4CD; मैप में देखें">&#x1F4CD; Open in Maps</a>
     </div>
     <div class="info-card">
       <div class="icon">&#x1F64F;</div>
