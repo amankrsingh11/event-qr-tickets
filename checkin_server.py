@@ -529,6 +529,16 @@ REGISTER_HTML = """
     width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(139,26,26,0.15);
     border-top: 5px solid #CC5500;
   }
+  .lang-toggle {
+    display: flex; justify-content: flex-end; margin-bottom: 8px;
+  }
+  .lang-btn {
+    padding: 5px 14px; border: 2px solid #CC5500; border-radius: 20px; font-size: 0.78rem;
+    font-weight: 600; cursor: pointer; background: #fff; color: #CC5500; transition: all 0.2s;
+  }
+  .lang-btn.active { background: #CC5500; color: #fff; }
+  .lang-btn:first-child { border-radius: 20px 0 0 20px; }
+  .lang-btn:last-child { border-radius: 0 20px 20px 0; }
   .card-header { text-align: center; margin-bottom: 24px; }
   .greeting {
     font-family: 'Tiro Devanagari Hindi', serif;
@@ -570,34 +580,38 @@ REGISTER_HTML = """
 </head>
 <body>
 <div class="card">
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('en')">English</button>
+    <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
+  </div>
   <div class="card-header">
-    <div class="greeting">&#x1F64F; JAI MATA DI &#x1F64F;</div>
-    <h1>Shrimad Bhagwat Katha</h1>
-    <div class="sub">Registration</div>
+    <div class="greeting">&#x1F64F; <span data-en="JAI MATA DI" data-hi="जय माता दी">JAI MATA DI</span> &#x1F64F;</div>
+    <h1 data-en="Shrimad Bhagwat Katha" data-hi="श्रीमद् भागवत कथा">Shrimad Bhagwat Katha</h1>
+    <div class="sub" data-en="Registration" data-hi="पंजीकरण">Registration</div>
     <div class="accent-bar"></div>
     <div class="date-pill">{{ date_display }}</div>
   </div>
 
   <div class="venue-info">
-    <strong>Katha Timing:</strong> 4:00 PM to 7:00 PM &mdash; Kindly reach 15-30 min earlier<br>
-    <strong>Venue:</strong> Gate No 3, Shri Adya Katyayani Shakti Peeth Mandir, Chhatarpur, New Delhi
+    <span data-en="<strong>Katha Timing:</strong> 4:00 PM to 7:00 PM &mdash; Kindly reach 15-30 min earlier" data-hi="<strong>कथा समय:</strong> शाम 4:00 बजे से 7:00 बजे तक &mdash; कृपया 15-30 मिनट पहले पहुँचें"></span><br>
+    <span data-en="<strong>Venue:</strong> Gate No 3, Shri Adya Katyayani Shakti Peeth Mandir, Chhatarpur, New Delhi" data-hi="<strong>स्थान:</strong> गेट नं. 3, श्री आद्य कात्यायनी शक्ति पीठ मंदिर, छतरपुर, नई दिल्ली"></span>
   </div>
 
   {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
 
   <form method="POST" action="/register" id="regForm">
     <div class="form-group">
-      <label>Full Name *</label>
-      <input type="text" name="name" required placeholder="Your full name" value="{{ prev.name or '' }}">
+      <label data-en="Full Name *" data-hi="पूरा नाम *">Full Name *</label>
+      <input type="text" name="name" required data-ph-en="Your full name" data-ph-hi="अपना पूरा नाम लिखें" placeholder="Your full name" value="{{ prev.name or '' }}">
     </div>
     <div class="form-group">
-      <label>Phone Number *</label>
+      <label data-en="Phone Number *" data-hi="फ़ोन नंबर *">Phone Number *</label>
       <input type="tel" name="phone" required placeholder="e.g. 9876543210" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.phone or '' }}">
     </div>
     <div class="form-group">
-      <label>Number of Attendees * (max 5)</label>
+      <label data-en="Number of Attendees * (max 5)" data-hi="उपस्थित लोगों की संख्या * (अधिकतम 5)">Number of Attendees * (max 5)</label>
       <select name="attendees" required>
-        <option value="">Select</option>
+        <option value="" data-en="Select" data-hi="चुनें">Select</option>
         <option value="1" {{ 'selected' if prev.attendees == '1' }}>1</option>
         <option value="2" {{ 'selected' if prev.attendees == '2' }}>2</option>
         <option value="3" {{ 'selected' if prev.attendees == '3' }}>3</option>
@@ -606,9 +620,9 @@ REGISTER_HTML = """
       </select>
     </div>
     <div class="form-group">
-      <label>Invitee Name *</label>
+      <label data-en="Invitee Name *" data-hi="निमंत्रणकर्ता का नाम *">Invitee Name *</label>
       <select name="invitee_name" required>
-        <option value="">Select</option>
+        <option value="" data-en="Select" data-hi="चुनें">Select</option>
         <option value="Arun Gupta Ji" {{ 'selected' if prev.invitee_name == 'Arun Gupta Ji' }}>Arun Gupta Ji</option>
         <option value="Sheena Aron Ji" {{ 'selected' if prev.invitee_name == 'Sheena Aron Ji' }}>Sheena Aron Ji</option>
         <option value="Ankit Ji" {{ 'selected' if prev.invitee_name == 'Ankit Ji' }}>Ankit Ji</option>
@@ -616,11 +630,26 @@ REGISTER_HTML = """
         <option value="Rama Shankar Ji" {{ 'selected' if prev.invitee_name == 'Rama Shankar Ji' }}>Rama Shankar Ji</option>
       </select>
     </div>
-    <button type="submit" class="submit-btn" id="submitBtn">&#x1F64F; REGISTER & GET QR PASS</button>
+    <button type="submit" class="submit-btn" id="submitBtn" data-en="&#x1F64F; REGISTER & GET QR PASS" data-hi="&#x1F64F; पंजीकरण करें और QR पास पाएं">&#x1F64F; REGISTER & GET QR PASS</button>
   </form>
-  <div class="spots-left"><span>{{ spots_left }}</span> spots remaining out of {{ total }}</div>
+  <div class="spots-left"><span>{{ spots_left }}</span> <span data-en="spots remaining out of" data-hi="शेष, कुल में से">spots remaining out of</span> {{ total }}</div>
 </div>
 <script>
+function setLang(lang) {
+  localStorage.setItem('katha_lang', lang);
+  document.querySelectorAll('[data-en]').forEach(el => {
+    el.innerHTML = el.getAttribute('data-' + lang) || el.getAttribute('data-en');
+  });
+  document.querySelectorAll('[data-ph-en]').forEach(el => {
+    el.placeholder = el.getAttribute('data-ph-' + lang) || el.getAttribute('data-ph-en');
+  });
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.lang-btn[onclick="setLang(\\'' + lang + '\\')"]').classList.add('active');
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var lang = localStorage.getItem('katha_lang') || 'en';
+  setLang(lang);
+});
 document.getElementById('regForm').addEventListener('submit',function(){var b=document.getElementById('submitBtn');b.disabled=true;b.textContent='REGISTERING...';});
 </script>
 </body>
@@ -711,47 +740,61 @@ SUCCESS_HTML = """
   .btn-all.download-pdf { background: linear-gradient(135deg, #8B1A1A, #CC5500); color: #fff; }
   .btn-all.share { background: linear-gradient(135deg, #25D366, #128C7E); color: #fff; }
   .btn-all:disabled { opacity: 0.5; cursor: not-allowed; }
+  .lang-toggle {
+    display: flex; justify-content: flex-end; margin-bottom: 8px;
+  }
+  .lang-btn {
+    padding: 5px 14px; border: 2px solid #2E7D32; border-radius: 20px; font-size: 0.78rem;
+    font-weight: 600; cursor: pointer; background: #fff; color: #2E7D32; transition: all 0.2s;
+  }
+  .lang-btn.active { background: #2E7D32; color: #fff; }
+  .lang-btn:first-child { border-radius: 20px 0 0 20px; }
+  .lang-btn:last-child { border-radius: 0 20px 20px 0; }
 </style>
 </head>
 <body>
 <div class="card">
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('en')">English</button>
+    <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
+  </div>
   <div class="check-icon">&#10003;</div>
-  <div class="greeting">&#x1F64F; JAI MATA DI &#x1F64F;</div>
-  <h1>You're Registered!</h1>
-  <p class="subtitle">{{ attendees }} QR pass{{ 'es' if attendees|int > 1 else '' }} for today's Katha</p>
+  <div class="greeting">&#x1F64F; <span data-en="JAI MATA DI" data-hi="जय माता दी">JAI MATA DI</span> &#x1F64F;</div>
+  <h1 data-en="You're Registered!" data-hi="आपका पंजीकरण हो गया!">You're Registered!</h1>
+  <p class="subtitle"><span data-en="{{ attendees }} QR pass{{ 'es' if attendees|int > 1 else '' }} for today's Katha" data-hi="आज की कथा के लिए {{ attendees }} QR पास">{{ attendees }} QR pass{{ 'es' if attendees|int > 1 else '' }} for today's Katha</span></p>
   <div class="date-pill">{{ date_display }}</div>
 
   <div class="venue-info">
-    <strong>Timing:</strong> 4:00 PM to 7:00 PM &mdash; Reach 15-30 min earlier<br>
-    <strong>Venue:</strong> Gate No 3, Shri Adya Katyayani Shakti Peeth Mandir, Chhatarpur, New Delhi
+    <span data-en="<strong>Timing:</strong> 4:00 PM to 7:00 PM &mdash; Reach 15-30 min earlier" data-hi="<strong>समय:</strong> शाम 4:00 से 7:00 बजे तक &mdash; कृपया 15-30 मिनट पहले पहुँचें"></span><br>
+    <span data-en="<strong>Venue:</strong> Gate No 3, Shri Adya Katyayani Shakti Peeth Mandir, Chhatarpur, New Delhi" data-hi="<strong>स्थान:</strong> गेट नं. 3, श्री आद्य कात्यायनी शक्ति पीठ मंदिर, छतरपुर, नई दिल्ली"></span>
   </div>
 
   <div class="qr-section">
     {% for t in tickets %}
     <div class="qr-box">
-      <div class="qr-label">Attendee {{ loop.index }} of {{ attendees }} &mdash; Pass #{{ '%03d' % t.serial }}</div>
+      <div class="qr-label"><span data-en="Attendee {{ loop.index }} of {{ attendees }}" data-hi="उपस्थित {{ loop.index }} / {{ attendees }}">Attendee {{ loop.index }} of {{ attendees }}</span> &mdash; Pass #{{ '%03d' % t.serial }}</div>
       <img src="/qr-image/{{ date_str }}/{{ t.serial }}" alt="QR #{{ t.serial }}" id="qr-{{ t.serial }}" crossorigin="anonymous">
       <div class="ticket-id">{{ t.ticket_id }}</div>
       <div class="btn-row">
-        <button class="btn-share" onclick="shareOne({{ t.serial }},'{{ '%03d' % t.serial }}')">&#9993; Share</button>
+        <button class="btn-share" onclick="shareOne({{ t.serial }},'{{ '%03d' % t.serial }}')"><span data-en="&#9993; Share" data-hi="&#9993; शेयर करें">&#9993; Share</span></button>
       </div>
     </div>
     {% endfor %}
   </div>
 
   <div class="btn-all-row">
-    <button class="btn-all download-pdf" id="btnPdf" onclick="downloadPDF()">&#128196; Download All as PDF</button>
-    <button class="btn-all share" id="btnShareAll" onclick="shareAll()">&#9993; Share All</button>
+    <button class="btn-all download-pdf" id="btnPdf" onclick="downloadPDF()"><span data-en="&#128196; Download All as PDF" data-hi="&#128196; सभी PDF डाउनलोड करें">&#128196; Download All as PDF</span></button>
+    <button class="btn-all share" id="btnShareAll" onclick="shareAll()"><span data-en="&#9993; Share All" data-hi="&#9993; सभी शेयर करें">&#9993; Share All</span></button>
   </div>
 
   <div class="ticket-info">
-    <div class="row"><span class="label">Registered by</span><span class="value">{{ name }}</span></div>
-    <div class="row"><span class="label">Total Attendees</span><span class="value">{{ attendees }}</span></div>
-    <div class="row"><span class="label">Invited by</span><span class="value">{{ invitee_name }}</span></div>
-    <div class="row"><span class="label">Valid for</span><span class="value">{{ date_display }}</span></div>
+    <div class="row"><span class="label" data-en="Registered by" data-hi="पंजीकृत">Registered by</span><span class="value">{{ name }}</span></div>
+    <div class="row"><span class="label" data-en="Total Attendees" data-hi="कुल उपस्थित">Total Attendees</span><span class="value">{{ attendees }}</span></div>
+    <div class="row"><span class="label" data-en="Invited by" data-hi="निमंत्रणकर्ता">Invited by</span><span class="value">{{ invitee_name }}</span></div>
+    <div class="row"><span class="label" data-en="Valid for" data-hi="वैध तिथि">Valid for</span><span class="value">{{ date_display }}</span></div>
   </div>
 
-  <div class="notice">
+  <div class="notice" data-en="Each person must show their own QR at the gate. <strong>Valid today only. One-time use.</strong>" data-hi="प्रत्येक व्यक्ति को गेट पर अपना QR दिखाना होगा। <strong>केवल आज के लिए वैध। एक बार उपयोग।</strong>">
     Each person must show their own QR at the gate. <strong>Valid today only. One-time use.</strong>
   </div>
 </div>
@@ -865,6 +908,16 @@ async function shareAll() {
   } catch(e) { if(e.name !== 'AbortError') alert('Share failed.'); }
   btn.disabled = false; btn.innerHTML = '&#9993; Share All';
 }
+
+function setLang(lang) {
+  localStorage.setItem('katha_lang', lang);
+  document.querySelectorAll('[data-en]').forEach(function(el) {
+    el.innerHTML = el.getAttribute('data-' + lang) || el.getAttribute('data-en');
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
+}
+(function(){ var lang = localStorage.getItem('katha_lang') || 'en'; setLang(lang); })();
 </script>
 </body>
 </html>

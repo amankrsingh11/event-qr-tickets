@@ -10,3 +10,5 @@ output/qr_samples/
 output/event_tickets.pdf
 .DS_Store
 bot/.wwebjs_cache/
+.vercel
+.env*
