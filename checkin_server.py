@@ -2395,8 +2395,8 @@ async function downloadPDF(){
 
 @app.route("/universal-passes")
 def universal_passes():
-    password = request.cookies.get("scanner_auth")
-    if password != os.environ.get("SCANNER_PASSWORD", "admin"):
+    cookie = request.cookies.get("scanner_auth", "")
+    if cookie != hashlib.sha256(SCANNER_PASSWORD.encode()).hexdigest():
         return redirect("/scanner")
     init_universal_tickets()
     tickets = []
