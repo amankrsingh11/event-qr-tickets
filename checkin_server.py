@@ -433,6 +433,11 @@ SCANNER_HTML = """
     display: inline-block; margin-top: 8px; padding: 4px 14px;
     background: #FFD700; color: #8B1A1A; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
   }
+  .stats {
+    display: flex; flex-direction:column; gap:4px; justify-content: center;
+    margin-top: 10px; font-size: 0.85rem; color: rgba(255,255,255,0.7);
+  }
+  .stats span { color: #FFD700; font-weight: 700; font-size: 1.1rem; }
   #reader-container { width: 100%; max-width: 500px; margin: 20px auto; padding: 0 16px; }
   #reader { width: 100%; border-radius: 12px; overflow: hidden; }
   .result-overlay {
@@ -494,6 +499,11 @@ SCANNER_HTML = """
   <h1>SHRIMAD BHAGWAT KATHA</h1>
   <div class="subtitle">Check-in Scanner</div>
   <div class="date-badge" id="todayDate"></div>
+  <div class="stats">
+    <div>Reg: <span id="regUsed">0</span> / <span id="regTotal">250</span> &nbsp;|&nbsp; Left: <span id="regRemaining">0</span></div>
+    <div>Tatkal: <span id="tatkalUsed">0</span> / <span id="tatkalTotal">50</span> &nbsp;|&nbsp; Left: <span id="tatkalRemaining">0</span></div>
+    <div>Universal: <span id="univUsed">0</span> / <span id="univTotal">50</span> &nbsp;|&nbsp; Left: <span id="univRemaining">0</span></div>
+  </div>
 </div>
 <div id="reader-container"><div id="reader"></div></div>
 <div class="result-overlay" id="resultOverlay">
@@ -541,7 +551,8 @@ SCANNER_HTML = """
 let scanner,scanning=true;
 document.getElementById('todayDate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 function initScanner(){scanner=new Html5Qrcode("reader");scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:250}},onScanSuccess,()=>{}).catch(()=>{document.getElementById("reader").innerHTML='<p style="padding:40px;text-align:center;color:#ef4444;">Camera access denied.</p>';});}
-async function onScanSuccess(t){if(!scanning)return;scanning=false;scanner.pause(true);try{const r=await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticket_id:t})});const d=await r.json();showResult(d,t);}catch(e){showResult({status:"error"},t);}}
+async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("regUsed").textContent=d.reg_used;document.getElementById("regTotal").textContent=d.reg_total;document.getElementById("regRemaining").textContent=d.reg_remaining;document.getElementById("tatkalUsed").textContent=d.tatkal_used;document.getElementById("tatkalTotal").textContent=d.tatkal_total;document.getElementById("tatkalRemaining").textContent=d.tatkal_remaining;document.getElementById("univUsed").textContent=d.univ_used;document.getElementById("univTotal").textContent=d.univ_total;document.getElementById("univRemaining").textContent=d.univ_remaining;}catch(e){}}
+async function onScanSuccess(t){if(!scanning)return;scanning=false;scanner.pause(true);try{const r=await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticket_id:t})});const d=await r.json();showResult(d,t);refreshStats();}catch(e){showResult({status:"error"},t);}}
 function showResult(d,t){const o=document.getElementById("resultOverlay"),i=document.getElementById("resultIcon"),tt=document.getElementById("resultTitle"),dd=document.getElementById("resultDetail"),tid=document.getElementById("resultTicketId");o.className="result-overlay show";tid.textContent=t;if(d.status==="ok"){o.classList.add("valid");i.textContent="\\u2713";tt.textContent="WELCOME!";dd.textContent="Entry #"+d.serial+" \\u2014 "+d.entry_number+" of "+d.total;}else if(d.status==="already_used"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="ALREADY USED";dd.textContent="Scanned at "+d.used_at;}else if(d.status==="wrong_day"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="WRONG DAY";dd.textContent="Not valid today.";}else{o.classList.add("unknown");i.textContent="?";tt.textContent="INVALID";dd.textContent="QR not recognized.";}}
 function dismissResult(){document.getElementById("resultOverlay").className="result-overlay";scanning=true;scanner.resume();}
 async function submitTatkal(){
@@ -558,11 +569,12 @@ async function submitTatkal(){
     if(d.status==='ok'){
       msg.className='tatkal-msg ok';msg.textContent='Registered: '+d.name+' ('+d.attendees+' pass'+(d.attendees>1?'es':'')+') - Invitee: '+d.invitee_name;
       document.getElementById('tkName').value='';document.getElementById('tkPhone').value='';document.getElementById('tkInviteePhone').value='';
+      refreshStats();
     }else{msg.className='tatkal-msg err';msg.textContent=d.message||'Registration failed.';}
   }catch(e){msg.className='tatkal-msg err';msg.textContent='Network error. Try again.';}
   btn.disabled=false;btn.textContent='\\u26A1 Register Now';
 }
-document.addEventListener("DOMContentLoaded",()=>{initScanner();});
+document.addEventListener("DOMContentLoaded",()=>{refreshStats();initScanner();});
 </script>
 </body>
 </html>
