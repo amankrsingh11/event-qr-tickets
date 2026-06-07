@@ -253,7 +253,8 @@ def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone):
         ws = _get_or_create_worksheet(sh, "Check-ins",
             ["Date", "Time", "Ticket #", "Ticket ID", "Name", "Phone"])
         time_str = now_ist().strftime("%I:%M %p")
-        ws.append_row([date_str, time_str, f"#{serial:03d}", ticket_id, reg_name, reg_phone])
+        serial_str = f"#{serial}" if isinstance(serial, str) else f"#{serial:03d}"
+        ws.append_row([date_str, time_str, serial_str, ticket_id, reg_name, reg_phone])
     except Exception as e:
         print(f"Google Sheets (checkin) error: {e}", flush=True)
 
@@ -2341,6 +2342,12 @@ h1{font-family:'Playfair Display',serif;font-size:1.6rem;color:#FFD700;text-alig
 .qr-card img{width:128px;height:128px;border-radius:8px;background:#fff;padding:4px;}
 .qr-card .label{margin-top:8px;font-size:0.82rem;color:#FFD700;font-weight:600;}
 .qr-card .tid{font-size:0.6rem;color:rgba(255,255,255,0.3);margin-top:4px;word-break:break-all;}
+.qr-card .dl-btn{
+  margin-top:8px;padding:6px 14px;border:1px solid rgba(255,165,0,0.3);border-radius:8px;
+  background:rgba(255,165,0,0.08);color:#FFD700;font-size:0.72rem;font-weight:600;
+  cursor:pointer;transition:all 0.2s;
+}
+.qr-card .dl-btn:hover{background:rgba(255,165,0,0.2);}
 </style>
 </head>
 <body>
@@ -2354,6 +2361,7 @@ h1{font-family:'Playfair Display',serif;font-size:1.6rem;color:#FFD700;text-alig
       <img src="/universal-qr/{{ t.serial }}" alt="U-{{ '%03d' % t.serial }}" crossorigin="anonymous">
       <div class="label">Pass #U-{{ '%03d' % t.serial }}</div>
       <div class="tid">{{ t.ticket_id }}</div>
+      <button class="dl-btn" onclick="downloadOne({{ t.serial }})">Download</button>
     </div>
     {% endfor %}
   </div>
@@ -2386,6 +2394,27 @@ async function downloadPDF(){
   }
   doc.save('Universal-Passes.pdf');
   btn.textContent='Download All as PDF';btn.disabled=false;
+}
+async function downloadOne(serial){
+  var{jsPDF}=window.jspdf;
+  var doc=new jsPDF({unit:'mm',format:'a4'});
+  var img=new Image();img.crossOrigin='anonymous';
+  img.src='/universal-qr/'+serial;
+  await new Promise(function(r){img.onload=r;});
+  var canvas=document.createElement('canvas');
+  canvas.width=400;canvas.height=400;
+  var ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,400,400);
+  ctx.drawImage(img,0,0,400,400);
+  var data=canvas.toDataURL('image/png');
+  doc.setFontSize(24);doc.setTextColor(139,26,26);
+  doc.text('Shrimad Bhagwat Katha',105,30,{align:'center'});
+  doc.setFontSize(16);doc.setTextColor(80,80,80);
+  doc.text('Universal Pass #U-'+String(serial).padStart(3,'0'),105,42,{align:'center'});
+  doc.addImage(data,'PNG',42.5,55,125,125);
+  doc.setFontSize(10);doc.setTextColor(150,150,150);
+  doc.text('Valid every day | One scan per day',105,195,{align:'center'});
+  doc.save('Universal-Pass-U-'+String(serial).padStart(3,'0')+'.pdf');
 }
 </script>
 </body>
