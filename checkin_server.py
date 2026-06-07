@@ -2808,6 +2808,28 @@ def api_registrations():
 
 
 if __name__ == "__main__":
+@app.route("/api/cron-clear", methods=["GET"])
+def cron_clear():
+    """Daily cron: clear all Redis keys except universal_tickets."""
+    cron_secret = request.headers.get("Authorization", "")
+    if cron_secret != f"Bearer {os.environ.get('CRON_SECRET', '')}":
+        return jsonify({"status": "unauthorized"}), 401
+
+    if not USE_REDIS:
+        return jsonify({"status": "skipped", "reason": "no redis"})
+
+    r = _get_redis()
+    keys = r.keys("*")
+    deleted = []
+    for k in keys:
+        if k == "universal_tickets":
+            continue
+        r.delete(k)
+        deleted.append(k)
+    return jsonify({"status": "ok", "deleted": deleted, "kept": ["universal_tickets"]})
+
+
+if __name__ == "__main__":
     date_str = today_ist()
     regs = load_registrations(date_str)
     print("\n" + "=" * 50)
