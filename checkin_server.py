@@ -462,6 +462,39 @@ SCANNER_HTML = """
   .log-entry.ok { background: rgba(16,185,129,0.15); border-left: 3px solid #10b981; }
   .log-entry.fail { background: rgba(239,68,68,0.15); border-left: 3px solid #ef4444; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .tatkal{width:100%;max-width:500px;padding:16px;margin-top:20px;}
+  .tatkal h3{font-size:0.95rem;color:#FFD700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .tatkal-toggle{
+    padding:10px 20px;width:100%;border:2px solid rgba(255,165,0,0.3);border-radius:12px;
+    background:rgba(255,165,0,0.08);color:#FFD700;font-size:0.9rem;font-weight:600;
+    cursor:pointer;transition:all 0.2s;
+  }
+  .tatkal-toggle:hover{background:rgba(255,165,0,0.15);}
+  .tatkal-form{display:none;margin-top:12px;}
+  .tatkal-form.open{display:block;}
+  .tatkal-form .fg{margin-bottom:10px;}
+  .tatkal-form label{display:block;font-size:0.78rem;color:rgba(255,255,255,0.6);margin-bottom:4px;font-weight:600;}
+  .tatkal-form input,.tatkal-form select{
+    width:100%;padding:11px 12px;border:1.5px solid rgba(255,165,0,0.2);border-radius:10px;
+    font-size:0.9rem;color:#fff;background:rgba(255,255,255,0.04);outline:none;
+  }
+  .tatkal-form input::placeholder{color:rgba(255,255,255,0.25);}
+  .tatkal-form input:focus,.tatkal-form select:focus{border-color:#FF8C00;background:rgba(255,255,255,0.07);}
+  .tatkal-form select{-webkit-appearance:none;appearance:none;color:rgba(255,255,255,0.8);}
+  .tatkal-form select option{background:#2a1a0a;color:#fff;}
+  .phone-wrap{position:relative;}
+  .phone-wrap .pfx{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:0.85rem;color:rgba(255,215,0,0.5);font-weight:600;pointer-events:none;}
+  .phone-wrap input{padding-left:44px;}
+  .tatkal-submit{
+    width:100%;padding:12px;border:none;border-radius:10px;font-weight:700;font-size:0.9rem;
+    color:#fff;background:linear-gradient(135deg,#FF8C00,#CC5500);cursor:pointer;margin-top:4px;
+    transition:all 0.2s;
+  }
+  .tatkal-submit:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(255,140,0,0.3);}
+  .tatkal-submit:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none;}
+  .tatkal-msg{padding:10px;border-radius:8px;font-size:0.82rem;margin-top:8px;display:none;}
+  .tatkal-msg.ok{display:block;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#86efac;}
+  .tatkal-msg.err{display:block;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;}
 </style>
 </head>
 <body>
@@ -483,6 +516,39 @@ SCANNER_HTML = """
   <button class="result-dismiss" onclick="dismissResult()">SCAN NEXT</button>
 </div>
 <div class="log"><h3>Recent Scans</h3><div id="logEntries"></div></div>
+<div class="tatkal">
+  <button class="tatkal-toggle" onclick="document.getElementById('tatkalForm').classList.toggle('open');this.style.display='none';">&#x26A1; Tatkal Registration</button>
+  <div class="tatkal-form" id="tatkalForm">
+    <h3>&#x26A1; Tatkal Registration</h3>
+    <div class="fg">
+      <label>Full Name</label>
+      <input type="text" id="tkName" placeholder="Enter full name" required>
+    </div>
+    <div class="fg">
+      <label>Phone Number</label>
+      <div class="phone-wrap">
+        <span class="pfx">+91</span>
+        <input type="tel" id="tkPhone" placeholder="10-digit number" pattern="[0-9]{10}" maxlength="10" required>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Number of Attendees (max 2)</label>
+      <select id="tkAttendees">
+        <option value="1">1</option>
+        <option value="2">2</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Invitee Phone Number</label>
+      <div class="phone-wrap">
+        <span class="pfx">+91</span>
+        <input type="tel" id="tkInviteePhone" placeholder="Invitee's 10-digit number" pattern="[0-9]{10}" maxlength="10" required>
+      </div>
+    </div>
+    <button class="tatkal-submit" id="tkSubmit" onclick="submitTatkal()">&#x26A1; Register Now</button>
+    <div class="tatkal-msg" id="tkMsg"></div>
+  </div>
+</div>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 let scanner,scanning=true;
@@ -493,6 +559,25 @@ function showResult(d,t){const o=document.getElementById("resultOverlay"),i=docu
 function dismissResult(){document.getElementById("resultOverlay").className="result-overlay";scanning=true;scanner.resume();}
 async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("guestUsed").textContent=d.guest_used;document.getElementById("guestTotal").textContent=d.guest_total;document.getElementById("guestRemaining").textContent=d.guest_remaining;document.getElementById("univUsed").textContent=d.univ_used;document.getElementById("univTotal").textContent=d.univ_total;document.getElementById("univRemaining").textContent=d.univ_remaining;}catch(e){}}
 async function refreshLog(){try{const r=await fetch("/api/recent-scans"),d=await r.json();const c=document.getElementById("logEntries");c.innerHTML='';d.scans.forEach(s=>{const div=document.createElement("div");div.className="log-entry "+(s.ok?"ok":"fail");div.innerHTML='<span>'+(s.ok?"\\u2713":"\\u2717")+' #'+String(s.serial).padStart(3,'0')+' '+s.name+'</span><span>'+s.time+'</span>';c.appendChild(div);});}catch(e){}}
+async function submitTatkal(){
+  var btn=document.getElementById('tkSubmit'),msg=document.getElementById('tkMsg');
+  var name=document.getElementById('tkName').value.trim();
+  var phone=document.getElementById('tkPhone').value.trim();
+  var attendees=document.getElementById('tkAttendees').value;
+  var inviteePhone=document.getElementById('tkInviteePhone').value.trim();
+  if(!name||!phone||!inviteePhone){msg.className='tatkal-msg err';msg.textContent='All fields are required.';return;}
+  btn.disabled=true;btn.textContent='Registering...';msg.className='tatkal-msg';msg.style.display='none';
+  try{
+    var r=await fetch('/api/tatkal-register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,phone:phone,attendees:parseInt(attendees),invitee_phone:inviteePhone})});
+    var d=await r.json();
+    if(d.status==='ok'){
+      msg.className='tatkal-msg ok';msg.textContent='Registered: '+d.name+' ('+d.attendees+' pass'+(d.attendees>1?'es':'')+') - Invitee: '+d.invitee_name;
+      document.getElementById('tkName').value='';document.getElementById('tkPhone').value='';document.getElementById('tkInviteePhone').value='';
+      refreshStats();
+    }else{msg.className='tatkal-msg err';msg.textContent=d.message||'Registration failed.';}
+  }catch(e){msg.className='tatkal-msg err';msg.textContent='Network error. Try again.';}
+  btn.disabled=false;btn.textContent='\\u26A1 Register Now';
+}
 document.addEventListener("DOMContentLoaded",()=>{refreshStats();refreshLog();initScanner();setInterval(()=>{refreshStats();refreshLog();},10000);});
 </script>
 </body>
@@ -2509,6 +2594,63 @@ def stats():
         "guest_remaining": TOTAL_CAPACITY - guest_used,
         "univ_total": UNIVERSAL_COUNT, "univ_used": univ_used,
         "univ_remaining": UNIVERSAL_COUNT - univ_used,
+    })
+
+
+@app.route("/api/tatkal-register", methods=["POST"])
+def tatkal_register():
+    data = request.get_json()
+    name = data.get("name", "").strip()
+    phone = data.get("phone", "").strip()
+    attendees = int(data.get("attendees", 1))
+    invitee_phone = data.get("invitee_phone", "").strip()
+
+    if not name or not phone or not invitee_phone:
+        return jsonify({"status": "error", "message": "All fields are required."})
+
+    if len(phone) != 10 or not phone.isdigit():
+        return jsonify({"status": "error", "message": "Please enter a valid 10-digit phone number."})
+
+    if len(invitee_phone) != 10 or not invitee_phone.isdigit():
+        return jsonify({"status": "error", "message": "Please enter a valid 10-digit invitee phone number."})
+
+    if invitee_phone not in PHONE_WHITELIST:
+        return jsonify({"status": "error", "message": "Invitee phone number is not recognized."})
+
+    invitee_name = PHONE_WHITELIST[invitee_phone]
+
+    if attendees < 1 or attendees > MAX_ATTENDEES:
+        return jsonify({"status": "error", "message": f"Attendees must be between 1 and {MAX_ATTENDEES}."})
+
+    date_str = today_ist()
+    registrations = load_registrations(date_str)
+
+    if phone in registrations:
+        return jsonify({"status": "error", "message": "This phone number is already registered today."})
+
+    spots_left = max(0, TOTAL_CAPACITY - total_attendees_registered(registrations))
+    if spots_left < attendees:
+        return jsonify({"status": "error", "message": f"Only {spots_left} spots left."})
+
+    available = get_next_available_tickets(attendees, date_str, registrations)
+    if len(available) < attendees:
+        return jsonify({"status": "error", "message": "Not enough passes available."})
+
+    tickets_data = [{"serial": s, "ticket_id": tid} for s, tid in available]
+    registrations[phone] = {
+        "name": name, "attendees": attendees, "invitee_name": invitee_name,
+        "tickets": tickets_data,
+        "registered_at": now_ist().strftime("%Y-%m-%d %I:%M %p"),
+    }
+    save_registrations(date_str, registrations)
+
+    serials = [t["serial"] for t in tickets_data]
+    print(f"Tatkal registered: {name} ({phone}) -> {attendees} pass(es) [{date_str}]", flush=True)
+    sheet_append_registration(date_str, name, phone, attendees, invitee_name, serials)
+
+    return jsonify({
+        "status": "ok", "name": name, "attendees": attendees,
+        "invitee_name": invitee_name, "tickets": tickets_data,
     })
 
 
