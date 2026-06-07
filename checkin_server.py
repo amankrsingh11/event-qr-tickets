@@ -172,19 +172,15 @@ def save_used_tickets(date_str, used_tickets):
 
 GOOGLE_SHEETS_ENABLED = bool(os.environ.get("GOOGLE_SHEETS_CREDS"))
 GOOGLE_SHEET_ID = os.environ.get("GOOGLE_SHEET_ID", "")
-_gspread_client = None
 
 def _get_gspread():
-    global _gspread_client
-    if _gspread_client is None:
-        import gspread
-        from google.oauth2.service_account import Credentials
-        creds_json = json.loads(base64.b64decode(os.environ["GOOGLE_SHEETS_CREDS"]))
-        creds = Credentials.from_service_account_info(creds_json, scopes=[
-            "https://www.googleapis.com/auth/spreadsheets",
-        ])
-        _gspread_client = gspread.authorize(creds)
-    return _gspread_client
+    import gspread
+    from google.oauth2.service_account import Credentials
+    creds_json = json.loads(base64.b64decode(os.environ["GOOGLE_SHEETS_CREDS"]))
+    creds = Credentials.from_service_account_info(creds_json, scopes=[
+        "https://www.googleapis.com/auth/spreadsheets",
+    ])
+    return gspread.authorize(creds)
 
 def _get_or_create_worksheet(sh, title, headers):
     import gspread
@@ -2810,8 +2806,11 @@ def api_registrations():
 @app.route("/api/cron-clear", methods=["GET"])
 def cron_clear():
     """Daily cron: clear all Redis keys except universal_tickets."""
+    expected_secret = os.environ.get("CRON_SECRET", "")
+    if not expected_secret:
+        return jsonify({"status": "error", "message": "CRON_SECRET not configured"}), 500
     cron_secret = request.headers.get("Authorization", "")
-    if cron_secret != f"Bearer {os.environ.get('CRON_SECRET', '')}":
+    if cron_secret != f"Bearer {expected_secret}":
         return jsonify({"status": "unauthorized"}), 401
 
     if not USE_REDIS:
