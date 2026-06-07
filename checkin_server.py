@@ -19,8 +19,22 @@ from flask import Flask, request, jsonify, render_template_string, redirect, mak
 app = Flask(__name__)
 
 TOTAL_CAPACITY = 250
+MAX_ATTENDEES = 2
 TICKET_SECRET = os.environ.get("TICKET_SECRET", "katha-qr-2026-secret")
 IST = timezone(timedelta(hours=5, minutes=30))
+
+PHONE_WHITELIST = {
+    "9811031901": "Arun Kumar Gupta Ji",
+    "9873211000": "Gita Gupta Ji",
+    "9999441237": "Ankit Gupta Ji",
+    "9999820096": "Vanya Gupta Ji",
+    "9899680340": "Sheena Agarwal Ji",
+    "9811842460": "Raj Agarwal Ji",
+    "8076233724": "Sanjay Ji",
+    "9873684880": "Rama Shankar Ji",
+    "9810399000": "Rajesh Ji",
+    "9560817001": "Devish Sharma Ji",
+}
 
 # ---------------------------------------------------------------------------
 # Time helpers (IST)
@@ -840,25 +854,11 @@ body::before{
       <input type="tel" name="phone" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="10-digit mobile number" data-ph-hi="10 अंकों का मोबाइल नंबर" placeholder="10-digit mobile number" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.phone or '' }}">
     </div>
     <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
-      <label><span class="field-icon">&#x1F465;</span> <span data-en="Number of Attendees (max 5)" data-hi="उपस्थित लोगों की संख्या (अधिकतम 5)">Number of Attendees (max 5)</span></label>
+      <label><span class="field-icon">&#x1F465;</span> <span data-en="Number of Attendees (max 2)" data-hi="उपस्थित लोगों की संख्या (अधिकतम 2)">Number of Attendees (max 2)</span></label>
       <select name="attendees" {{ 'disabled' if spots_left <= 0 }} required>
         <option value="" data-en="-- Select --" data-hi="-- चुनें --">-- Select --</option>
         <option value="1" {{ 'selected' if prev.attendees == '1' }}>1</option>
         <option value="2" {{ 'selected' if prev.attendees == '2' }}>2</option>
-        <option value="3" {{ 'selected' if prev.attendees == '3' }}>3</option>
-        <option value="4" {{ 'selected' if prev.attendees == '4' }}>4</option>
-        <option value="5" {{ 'selected' if prev.attendees == '5' }}>5</option>
-      </select>
-    </div>
-    <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
-      <label><span class="field-icon">&#x1F64F;</span> <span data-en="Invitee Name" data-hi="निमंत्रणकर्ता का नाम">Invitee Name</span></label>
-      <select name="invitee_name" {{ 'disabled' if spots_left <= 0 }} required>
-        <option value="" data-en="-- Select --" data-hi="-- चुनें --">-- Select --</option>
-        <option value="Arun Gupta Ji" {{ 'selected' if prev.invitee_name == 'Arun Gupta Ji' }}>Arun Gupta Ji</option>
-        <option value="Sheena Aron Ji" {{ 'selected' if prev.invitee_name == 'Sheena Aron Ji' }}>Sheena Aron Ji</option>
-        <option value="Ankit Ji" {{ 'selected' if prev.invitee_name == 'Ankit Ji' }}>Ankit Ji</option>
-        <option value="Sanjay Ji" {{ 'selected' if prev.invitee_name == 'Sanjay Ji' }}>Sanjay Ji</option>
-        <option value="Rama Shankar Ji" {{ 'selected' if prev.invitee_name == 'Rama Shankar Ji' }}>Rama Shankar Ji</option>
       </select>
     </div>
     <button type="submit" class="submit-btn" id="submitBtn" {{ 'disabled' if spots_left <= 0 }} data-en="&#x1F64F; REGISTER &amp; GET QR PASS" data-hi="&#x1F64F; पंजीकरण करें और QR पास पाएं">&#x1F64F; REGISTER &amp; GET QR PASS</button>
@@ -1508,9 +1508,8 @@ def register_submit():
     name = request.form.get("name", "").strip()
     phone = request.form.get("phone", "").strip()
     attendees = int(request.form.get("attendees", "1").strip())
-    invitee_name = request.form.get("invitee_name", "").strip()
 
-    prev = {"name": name, "phone": phone, "attendees": str(attendees), "invitee_name": invitee_name}
+    prev = {"name": name, "phone": phone, "attendees": str(attendees), "invitee_name": ""}
     registrations = load_registrations(date_str)
     spots_left = max(0, TOTAL_CAPACITY - total_attendees_registered(registrations))
 
@@ -1519,7 +1518,7 @@ def register_submit():
         return render_template_string(ALREADY_REGISTERED_HTML,
             name=reg["name"], attendees=reg["attendees"], phone=phone, date_str=date_str)
 
-    if not name or not phone or not invitee_name:
+    if not name or not phone:
         return render_template_string(REGISTER_HTML,
             date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
             error="All fields are mandatory.", prev=prev)
@@ -1529,10 +1528,17 @@ def register_submit():
             date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
             error="Please enter a valid 10-digit phone number.", prev=prev)
 
-    if attendees < 1 or attendees > 5:
+    if phone not in PHONE_WHITELIST:
         return render_template_string(REGISTER_HTML,
             date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
-            error="Number of attendees must be between 1 and 5.", prev=prev)
+            error="This phone number is not authorized to register. Please contact the organizer.", prev=prev)
+
+    invitee_name = PHONE_WHITELIST[phone]
+
+    if attendees < 1 or attendees > MAX_ATTENDEES:
+        return render_template_string(REGISTER_HTML,
+            date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+            error=f"Number of attendees must be between 1 and {MAX_ATTENDEES}.", prev=prev)
 
     if spots_left < attendees:
         return render_template_string(REGISTER_HTML,
@@ -1885,23 +1891,10 @@ body::before{
       <input type="text" name="name" required value="{{ reg.name }}">
     </div>
     <div class="form-group">
-      <label><span class="field-icon">&#x1F465;</span> <span data-en="Number of Attendees (max 5)" data-hi="उपस्थित लोगों की संख्या (अधिकतम 5)">Number of Attendees (max 5)</span></label>
+      <label><span class="field-icon">&#x1F465;</span> <span data-en="Number of Attendees (max 2)" data-hi="उपस्थित लोगों की संख्या (अधिकतम 2)">Number of Attendees (max 2)</span></label>
       <select name="attendees" required>
         <option value="1" {{ 'selected' if reg.attendees|int == 1 }}>1</option>
         <option value="2" {{ 'selected' if reg.attendees|int == 2 }}>2</option>
-        <option value="3" {{ 'selected' if reg.attendees|int == 3 }}>3</option>
-        <option value="4" {{ 'selected' if reg.attendees|int == 4 }}>4</option>
-        <option value="5" {{ 'selected' if reg.attendees|int == 5 }}>5</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label><span class="field-icon">&#x1F64F;</span> <span data-en="Invitee Name" data-hi="निमंत्रणकर्ता का नाम">Invitee Name</span></label>
-      <select name="invitee_name" required>
-        <option value="Arun Gupta Ji" {{ 'selected' if reg.invitee_name == 'Arun Gupta Ji' }}>Arun Gupta Ji</option>
-        <option value="Sheena Aron Ji" {{ 'selected' if reg.invitee_name == 'Sheena Aron Ji' }}>Sheena Aron Ji</option>
-        <option value="Ankit Ji" {{ 'selected' if reg.invitee_name == 'Ankit Ji' }}>Ankit Ji</option>
-        <option value="Sanjay Ji" {{ 'selected' if reg.invitee_name == 'Sanjay Ji' }}>Sanjay Ji</option>
-        <option value="Rama Shankar Ji" {{ 'selected' if reg.invitee_name == 'Rama Shankar Ji' }}>Rama Shankar Ji</option>
       </select>
     </div>
     <button type="submit" class="submit-btn" data-en="&#x2714; Update Registration" data-hi="&#x2714; पंजीकरण अपडेट करें">&#x2714; Update Registration</button>
@@ -1975,9 +1968,9 @@ def update_registration():
     new_attendees = int(request.form.get("attendees", str(old_attendees)).strip())
     new_invitee = request.form.get("invitee_name", reg["invitee_name"]).strip()
 
-    if new_attendees < 1 or new_attendees > 5:
+    if new_attendees < 1 or new_attendees > MAX_ATTENDEES:
         return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
-            error="Attendees must be between 1 and 5.", success=None)
+            error=f"Attendees must be between 1 and {MAX_ATTENDEES}.", success=None)
 
     if new_attendees > old_attendees:
         extra_needed = new_attendees - old_attendees
