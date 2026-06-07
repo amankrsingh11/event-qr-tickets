@@ -1524,6 +1524,18 @@ body{
   margin-top:36px;font-size:0.78rem;color:rgba(255,255,255,0.4);
   position:relative;z-index:1;letter-spacing:0.5px;
 }
+.audio-btn{
+  position:fixed;bottom:20px;right:20px;z-index:100;
+  width:48px;height:48px;border-radius:50%;border:2px solid rgba(255,215,0,0.6);
+  background:rgba(0,0,0,0.7);color:#FFD700;font-size:1.3rem;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  backdrop-filter:blur(10px);
+  box-shadow:0 4px 20px rgba(255,140,0,0.3);
+  transition:transform 0.2s,box-shadow 0.2s;
+}
+.audio-btn:hover{transform:scale(1.1);box-shadow:0 4px 30px rgba(255,140,0,0.5);}
+.audio-btn.playing{animation:audioPulse 2s ease-in-out infinite;}
+@keyframes audioPulse{0%,100%{box-shadow:0 4px 20px rgba(255,140,0,0.3);}50%{box-shadow:0 4px 30px rgba(255,215,0,0.6);}}
 .lang-toggle{
   position:absolute;top:16px;right:16px;z-index:10;display:flex;
 }
@@ -1629,6 +1641,7 @@ body{
 <audio id="bgAudio" loop preload="auto">
   <source src="/static/bhajan.mp3" type="audio/mpeg">
 </audio>
+<button id="audioBtn" class="audio-btn" onclick="toggleAudio()">&#x1F50A;</button>
 <script>
 function setLang(lang){
   localStorage.setItem('katha_lang',lang);
@@ -1639,15 +1652,25 @@ function setLang(lang){
   document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
 }
 (function(){var l=localStorage.getItem('katha_lang')||'en';setLang(l);})();
+var audioPlaying=false;
+function toggleAudio(){
+  var a=document.getElementById('bgAudio');
+  var btn=document.getElementById('audioBtn');
+  if(audioPlaying){
+    a.pause();btn.innerHTML='&#x1F507;';btn.classList.remove('playing');audioPlaying=false;
+  }else{
+    a.volume=0.5;a.play().then(function(){
+      btn.innerHTML='&#x1F50A;';btn.classList.add('playing');audioPlaying=true;
+    }).catch(function(){});
+  }
+}
 (function(){
   var a=document.getElementById('bgAudio');
-  a.volume=0.4;
-  document.addEventListener('click',function startAudio(){
-    a.play();document.removeEventListener('click',startAudio);
-  },{once:true});
-  document.addEventListener('touchstart',function startAudio(){
-    a.play();document.removeEventListener('touchstart',startAudio);
-  },{once:true});
+  a.volume=0.5;
+  a.play().then(function(){
+    audioPlaying=true;
+    document.getElementById('audioBtn').classList.add('playing');
+  }).catch(function(){});
 })();
 </script>
 </body>
