@@ -535,10 +535,10 @@ SCANNER_HTML = """
       <input type="number" id="tkAttendees" min="1" value="1" placeholder="Enter number of people">
     </div>
     <div class="fg">
-      <label>Invitee Phone Number</label>
+      <label>Inviter Phone Number</label>
       <div class="phone-wrap">
         <span class="pfx">+91</span>
-        <input type="tel" id="tkInviteePhone" placeholder="Invitee's 10-digit number" pattern="[0-9]{10}" maxlength="10" required>
+        <input type="tel" id="tkInviteePhone" placeholder="Inviter's 10-digit number" pattern="[0-9]{10}" maxlength="10" required>
       </div>
     </div>
     <button class="tatkal-submit" id="tkSubmit" onclick="submitTatkal()">&#x26A1; Register Now</button>
@@ -1016,10 +1016,10 @@ body::after{
       </select>
     </div>
     <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
-      <label><span class="field-icon">&#x1F64F;</span> <span data-en="Invitee Phone Number" data-hi="निमंत्रणकर्ता का फ़ोन नंबर">Invitee Phone Number</span></label>
+      <label><span class="field-icon">&#x1F64F;</span> <span data-en="Inviter Phone Number" data-hi="आमंत्रणकर्ता का फ़ोन नंबर">Inviter Phone Number</span></label>
       <div class="phone-wrap">
         <span class="prefix">+91</span>
-        <input type="tel" name="invitee_phone" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="Invitee's 10-digit mobile number" data-ph-hi="निमंत्रणकर्ता का 10 अंकों का मोबाइल नंबर" placeholder="Invitee's 10-digit mobile number" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.invitee_phone or '' }}">
+        <input type="tel" name="invitee_phone" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="Inviter's 10-digit mobile number" data-ph-hi="आमंत्रणकर्ता का 10 अंकों का मोबाइल नंबर" placeholder="Inviter's 10-digit mobile number" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.invitee_phone or '' }}">
       </div>
     </div>
     <button type="submit" class="submit-btn" id="submitBtn" {{ 'disabled' if spots_left <= 0 }} data-en="&#x1F64F; REGISTER &amp; GET QR PASS" data-hi="&#x1F64F; पंजीकरण करें और QR पास पाएं">&#x1F64F; REGISTER &amp; GET QR PASS</button>
