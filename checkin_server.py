@@ -1626,6 +1626,9 @@ body{
     Kindly reach 15-30 minutes before the Katha begins
   </div>
 </div>
+<audio id="bgAudio" loop preload="auto">
+  <source src="/static/bhajan.mp3" type="audio/mpeg">
+</audio>
 <script>
 function setLang(lang){
   localStorage.setItem('katha_lang',lang);
@@ -1636,6 +1639,16 @@ function setLang(lang){
   document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
 }
 (function(){var l=localStorage.getItem('katha_lang')||'en';setLang(l);})();
+(function(){
+  var a=document.getElementById('bgAudio');
+  a.volume=0.4;
+  document.addEventListener('click',function startAudio(){
+    a.play();document.removeEventListener('click',startAudio);
+  },{once:true});
+  document.addEventListener('touchstart',function startAudio(){
+    a.play();document.removeEventListener('touchstart',startAudio);
+  },{once:true});
+})();
 </script>
 </body>
 </html>
