@@ -12,6 +12,7 @@ import io
 import json
 import hashlib
 import base64
+import threading
 import qrcode
 from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify, render_template_string, redirect, make_response
@@ -195,9 +196,7 @@ def _get_or_create_worksheet(sh, title, headers):
         ws.append_row(headers)
         return ws
 
-def sheet_append_registration(date_str, name, phone, attendees, invitee_name, ticket_serials):
-    if not GOOGLE_SHEETS_ENABLED:
-        return
+def _sheet_append_registration_sync(date_str, name, phone, attendees, invitee_name, ticket_serials):
     try:
         gc = _get_gspread()
         sh = gc.open_by_key(GOOGLE_SHEET_ID)
@@ -208,6 +207,12 @@ def sheet_append_registration(date_str, name, phone, attendees, invitee_name, ti
         ws.append_row([date_str, time_str, name, phone, str(attendees), invitee_name, serials_str])
     except Exception as e:
         print(f"Google Sheets (registration) error: {e}", flush=True)
+
+def sheet_append_registration(date_str, name, phone, attendees, invitee_name, ticket_serials):
+    if not GOOGLE_SHEETS_ENABLED:
+        return
+    threading.Thread(target=_sheet_append_registration_sync,
+        args=(date_str, name, phone, attendees, invitee_name, ticket_serials), daemon=True).start()
 
 def sheet_update_registration(date_str, name, phone, attendees, invitee_name, ticket_serials):
     if not GOOGLE_SHEETS_ENABLED:
@@ -246,9 +251,7 @@ def sheet_delete_registration(phone):
     except Exception as e:
         print(f"Google Sheets (delete) error: {e}", flush=True)
 
-def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone, invitee_name=""):
-    if not GOOGLE_SHEETS_ENABLED:
-        return
+def _sheet_append_checkin_sync(date_str, serial, ticket_id, reg_name, reg_phone, invitee_name=""):
     try:
         gc = _get_gspread()
         sh = gc.open_by_key(GOOGLE_SHEET_ID)
@@ -259,6 +262,12 @@ def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone, invit
         ws.append_row([date_str, time_str, serial_str, ticket_id, reg_name, reg_phone, invitee_name])
     except Exception as e:
         print(f"Google Sheets (checkin) error: {e}", flush=True)
+
+def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone, invitee_name=""):
+    if not GOOGLE_SHEETS_ENABLED:
+        return
+    threading.Thread(target=_sheet_append_checkin_sync,
+        args=(date_str, serial, ticket_id, reg_name, reg_phone, invitee_name), daemon=True).start()
 
 # ---------------------------------------------------------------------------
 # QR image generation
