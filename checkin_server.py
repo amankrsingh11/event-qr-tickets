@@ -598,7 +598,7 @@ h1{font-family:'Playfair Display',serif;font-size:1.35rem;color:#FFD700;margin-b
     <a class="btn-primary" href="/my-passes?phone={{ phone }}&date={{ date_str }}" data-en="&#x1F3AB; View My Passes" data-hi="&#x1F3AB; मेरे पास देखें">&#x1F3AB; View My Passes</a>
     <div class="btn-row">
       <a class="btn-secondary" href="/update-registration?phone={{ phone }}" data-en="&#x270F; Update" data-hi="&#x270F; अपडेट">&#x270F; Update</a>
-      <a class="btn-secondary" href="/register" data-en="&#x1F4DD; Register" data-hi="&#x1F4DD; पंजीकरण">&#x1F4DD; Register</a>
+      <a class="btn-secondary" href="/cancel-registration?phone={{ phone }}" data-en="&#x274C; Cancel" data-hi="&#x274C; रद्द करें" style="color:#fca5a5;border-color:rgba(220,38,38,0.3);">&#x274C; Cancel</a>
       <a class="btn-secondary" href="/" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
     </div>
   </div>
@@ -730,6 +730,12 @@ body::before{
   transition:all 0.25s ease;outline:none;
 }
 .form-group input::placeholder{color:rgba(255,255,255,0.25);}
+.phone-wrap{position:relative;}
+.phone-wrap .prefix{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  font-size:0.95rem;color:rgba(255,215,0,0.5);font-weight:600;pointer-events:none;
+}
+.phone-wrap input{padding-left:48px;}
 .form-group select{color:rgba(255,255,255,0.8);-webkit-appearance:none;appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFD700' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5l6.5 6.5 6.5-6.5'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
@@ -851,7 +857,10 @@ body::before{
     </div>
     <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
       <label><span class="field-icon">&#x1F4F1;</span> <span data-en="Phone Number" data-hi="फ़ोन नंबर">Phone Number</span></label>
-      <input type="tel" name="phone" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="10-digit mobile number" data-ph-hi="10 अंकों का मोबाइल नंबर" placeholder="10-digit mobile number" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.phone or '' }}">
+      <div class="phone-wrap">
+        <span class="prefix">+91</span>
+        <input type="tel" name="phone" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="10-digit mobile number" data-ph-hi="10 अंकों का मोबाइल नंबर" placeholder="10-digit mobile number" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.phone or '' }}">
+      </div>
     </div>
     <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
       <label><span class="field-icon">&#x1F465;</span> <span data-en="Number of Attendees (max 2)" data-hi="उपस्थित लोगों की संख्या (अधिकतम 2)">Number of Attendees (max 2)</span></label>
@@ -863,7 +872,10 @@ body::before{
     </div>
     <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
       <label><span class="field-icon">&#x1F64F;</span> <span data-en="Invitee Phone Number" data-hi="निमंत्रणकर्ता का फ़ोन नंबर">Invitee Phone Number</span></label>
-      <input type="tel" name="invitee_phone" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="Invitee's 10-digit mobile number" data-ph-hi="निमंत्रणकर्ता का 10 अंकों का मोबाइल नंबर" placeholder="Invitee's 10-digit mobile number" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.invitee_phone or '' }}">
+      <div class="phone-wrap">
+        <span class="prefix">+91</span>
+        <input type="tel" name="invitee_phone" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="Invitee's 10-digit mobile number" data-ph-hi="निमंत्रणकर्ता का 10 अंकों का मोबाइल नंबर" placeholder="Invitee's 10-digit mobile number" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.invitee_phone or '' }}">
+      </div>
     </div>
     <button type="submit" class="submit-btn" id="submitBtn" {{ 'disabled' if spots_left <= 0 }} data-en="&#x1F64F; REGISTER &amp; GET QR PASS" data-hi="&#x1F64F; पंजीकरण करें और QR पास पाएं">&#x1F64F; REGISTER &amp; GET QR PASS</button>
   </form>
@@ -872,6 +884,7 @@ body::before{
   <div class="footer-links">
     <a href="/my-passes" data-en="&#x1F3AB; Already registered? View your passes" data-hi="&#x1F3AB; पहले से पंजीकृत? अपने पास देखें">&#x1F3AB; Already registered? View your passes</a>
     <a href="/update-registration" data-en="&#x270F; Update existing registration" data-hi="&#x270F; मौजूदा पंजीकरण अपडेट करें">&#x270F; Update existing registration</a>
+    <a href="/cancel-registration" data-en="&#x274C; Cancel registration" data-hi="&#x274C; पंजीकरण रद्द करें" style="color:#fca5a5;">&#x274C; Cancel registration</a>
     <a href="/" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
   </div>
 </div>
@@ -1119,6 +1132,7 @@ h1{font-family:'Playfair Display',serif;font-size:1.35rem;color:#81C784;margin-b
 
   <div class="action-links">
     <a href="/update-registration?phone={{ phone }}" class="action-link" data-en="&#x270F; Update Registration" data-hi="&#x270F; पंजीकरण अपडेट करें">&#x270F; Update Registration</a>
+    <a href="/cancel-registration?phone={{ phone }}" class="action-link" style="color:#fca5a5;" data-en="&#x274C; Cancel Registration" data-hi="&#x274C; पंजीकरण रद्द करें">&#x274C; Cancel Registration</a>
     <a href="/" class="action-link" data-en="&#x1F3E0; Back to Home" data-hi="&#x1F3E0; होम पर वापस जाएं">&#x1F3E0; Back to Home</a>
   </div>
 </div>
@@ -1912,7 +1926,7 @@ body::before{
   <div class="note" data-en="Reducing attendees will cancel extra passes. Increasing will assign new ones if seats are available." data-hi="उपस्थित कम करने से अतिरिक्त पास रद्द होंगे। बढ़ाने से नए पास मिलेंगे यदि सीटें उपलब्ध हैं।">Reducing attendees will cancel extra passes. Increasing will assign new ones if seats are available.</div>
   <div class="nav-row">
     <a href="/my-passes?phone={{ phone }}" class="back-link" data-en="&#x1F3AB; My Passes" data-hi="&#x1F3AB; मेरे पास">&#x1F3AB; My Passes</a>
-    <a href="/register" class="back-link" data-en="&#x1F4DD; Register" data-hi="&#x1F4DD; पंजीकरण">&#x1F4DD; Register</a>
+    <a href="/cancel-registration?phone={{ phone }}" class="back-link" style="color:#fca5a5;" data-en="&#x274C; Cancel" data-hi="&#x274C; रद्द करें">&#x274C; Cancel</a>
     <a href="/" class="back-link" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
   </div>
 </div>
@@ -2009,6 +2023,164 @@ def update_registration():
 
     return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
         error=None, success="Registration updated successfully!")
+
+
+CANCEL_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cancel Registration | Shrimad Bhagwat Katha</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#1a0a00;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;
+}
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 50% 30%,rgba(255,140,0,0.1) 0%,transparent 60%);
+  pointer-events:none;
+}
+.page{position:relative;z-index:1;width:100%;max-width:480px;}
+.lang-toggle{display:flex;justify-content:flex-end;margin-bottom:10px;}
+.lang-btn{
+  padding:6px 16px;border:1.5px solid rgba(255,165,0,0.4);font-size:0.75rem;
+  font-weight:600;cursor:pointer;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);
+  transition:all 0.2s;
+}
+.lang-btn.active{background:rgba(255,165,0,0.2);color:#FFD700;border-color:#FF8C00;}
+.lang-btn:first-child{border-radius:20px 0 0 20px;}
+.lang-btn:last-child{border-radius:0 20px 20px 0;}
+.card{
+  background:linear-gradient(145deg,rgba(42,26,10,0.9),rgba(26,10,0,0.95));
+  border-radius:24px;padding:36px 28px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,165,0,0.1);
+  border:1px solid rgba(255,165,0,0.12);position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,#8B1A1A,#CC5500,#FF8C00,#FFD700,#FF8C00,#CC5500,#8B1A1A);
+}
+.icon{font-size:2.4rem;margin-bottom:12px;}
+h1{font-family:'Playfair Display',serif;font-size:1.3rem;color:#FFD700;margin-bottom:16px;}
+.info{
+  background:rgba(255,165,0,0.06);border:1px solid rgba(255,165,0,0.15);border-radius:14px;
+  padding:18px;margin-bottom:20px;text-align:left;line-height:1.8;
+}
+.info .row{display:flex;justify-content:space-between;font-size:0.88rem;}
+.info .label{color:rgba(255,255,255,0.5);}
+.info .value{color:#FFD700;font-weight:600;}
+.warning{
+  background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);border-radius:12px;
+  padding:14px;margin-bottom:20px;font-size:0.85rem;color:#fca5a5;line-height:1.5;
+}
+.actions{display:flex;gap:10px;}
+.btn{
+  flex:1;padding:14px;border-radius:12px;font-weight:700;font-size:0.9rem;
+  text-decoration:none;text-align:center;cursor:pointer;border:none;transition:all 0.2s;
+}
+.btn-cancel{
+  background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;
+  box-shadow:0 4px 16px rgba(220,38,38,0.3);
+}
+.btn-cancel:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(220,38,38,0.4);}
+.btn-back{
+  background:transparent;color:rgba(255,215,0,0.7);
+  border:1px solid rgba(255,165,0,0.2);
+}
+.btn-back:hover{color:#FFD700;border-color:rgba(255,165,0,0.4);}
+.success-msg{
+  background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:12px;
+  padding:18px;margin-bottom:20px;color:#86efac;font-size:0.92rem;
+}
+.nav-links{display:flex;justify-content:center;gap:16px;margin-top:16px;}
+.nav-links a{font-size:0.82rem;color:rgba(255,215,0,0.6);text-decoration:none;transition:color 0.2s;}
+.nav-links a:hover{color:#FFD700;}
+@media(max-width:480px){.card{padding:28px 20px;}}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="lang-toggle">
+  <button class="lang-btn active" onclick="setLang('en')">English</button>
+  <button class="lang-btn" onclick="setLang('hi')">&#x0939;&#x093F;&#x0928;&#x094D;&#x0926;&#x0940;</button>
+</div>
+<div class="card">
+{% if success %}
+  <div class="icon">&#x2705;</div>
+  <h1 data-en="Registration Cancelled" data-hi="पंजीकरण रद्द किया गया">Registration Cancelled</h1>
+  <div class="success-msg" data-en="{{ success }}" data-hi="आपका पंजीकरण सफलतापूर्वक रद्द कर दिया गया है। अब आप पुनः पंजीकरण कर सकते हैं।">{{ success }}</div>
+  <div class="nav-links">
+    <a href="/register" data-en="&#x1F4DD; Register Again" data-hi="&#x1F4DD; फिर से पंजीकरण">&#x1F4DD; Register Again</a>
+    <a href="/" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
+  </div>
+{% elif reg %}
+  <div class="icon">&#x26A0;&#xFE0F;</div>
+  <h1 data-en="Cancel Registration?" data-hi="पंजीकरण रद्द करें?">Cancel Registration?</h1>
+  <div class="info">
+    <div class="row"><span class="label" data-en="Name" data-hi="नाम">Name</span><span class="value">{{ reg.name }}</span></div>
+    <div class="row"><span class="label" data-en="Phone" data-hi="फ़ोन">Phone</span><span class="value">+91 {{ phone }}</span></div>
+    <div class="row"><span class="label" data-en="Passes" data-hi="पास">Passes</span><span class="value">{{ reg.attendees }}</span></div>
+    <div class="row"><span class="label" data-en="Invitee" data-hi="निमंत्रणकर्ता">Invitee</span><span class="value">{{ reg.invitee_name }}</span></div>
+  </div>
+  <div class="warning" data-en="This will permanently cancel your registration and all your QR passes for today. This action cannot be undone." data-hi="यह आपका आज का पंजीकरण और सभी QR पास स्थायी रूप से रद्द कर देगा। यह कार्रवाई पूर्ववत नहीं की जा सकती।">This will permanently cancel your registration and all your QR passes for today. This action cannot be undone.</div>
+  <form method="POST" action="/cancel-registration">
+    <input type="hidden" name="phone" value="{{ phone }}">
+    <div class="actions">
+      <a class="btn btn-back" href="/my-passes?phone={{ phone }}" data-en="&#x2190; Go Back" data-hi="&#x2190; वापस जाएं">&#x2190; Go Back</a>
+      <button type="submit" class="btn btn-cancel" data-en="&#x274C; Cancel Registration" data-hi="&#x274C; पंजीकरण रद्द करें">&#x274C; Cancel Registration</button>
+    </div>
+  </form>
+{% else %}
+  <div class="icon">&#x2753;</div>
+  <h1 data-en="No Registration Found" data-hi="कोई पंजीकरण नहीं मिला">No Registration Found</h1>
+  <div class="nav-links">
+    <a href="/register" data-en="&#x1F4DD; Register" data-hi="&#x1F4DD; पंजीकरण">&#x1F4DD; Register</a>
+    <a href="/" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
+  </div>
+{% endif %}
+</div>
+</div>
+<script>
+function setLang(lang){
+  localStorage.setItem('katha_lang',lang);
+  document.querySelectorAll('[data-en]').forEach(function(el){el.innerHTML=el.getAttribute('data-'+lang)||el.getAttribute('data-en');});
+  document.querySelectorAll('.lang-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
+}
+(function(){var l=localStorage.getItem('katha_lang')||'en';setLang(l);})();
+</script>
+</body>
+</html>
+"""
+
+
+@app.route("/cancel-registration", methods=["GET", "POST"])
+def cancel_registration():
+    date_str = today_ist()
+    registrations = load_registrations(date_str)
+
+    if request.method == "GET":
+        phone = request.args.get("phone", "").strip()
+        if not phone or phone not in registrations:
+            return render_template_string(CANCEL_HTML, reg=None, phone="", success=None)
+        reg = registrations[phone]
+        return render_template_string(CANCEL_HTML, reg=reg, phone=phone, success=None)
+
+    phone = request.form.get("phone", "").strip()
+    if phone not in registrations:
+        return render_template_string(CANCEL_HTML, reg=None, phone="", success=None)
+
+    reg = registrations.pop(phone)
+    save_registrations(date_str, registrations)
+    print(f"Cancelled registration: {reg['name']} ({phone}) [{date_str}]", flush=True)
+
+    return render_template_string(CANCEL_HTML, reg=None, phone=phone,
+        success=f"Registration for {reg['name']} (+91 {phone}) has been cancelled. {reg['attendees']} pass(es) released.")
 
 
 @app.route("/qr-image/<date_str>/<int:serial>")
