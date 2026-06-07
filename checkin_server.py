@@ -1638,10 +1638,10 @@ body{
     Kindly reach 15-30 minutes before the Katha begins
   </div>
 </div>
-<audio id="bgAudio" loop preload="auto">
+<audio id="bgAudio" loop autoplay preload="auto">
   <source src="/static/bhajan.mp3" type="audio/mpeg">
 </audio>
-<button id="audioBtn" class="audio-btn" onclick="toggleAudio()">&#x1F50A;</button>
+<button id="audioBtn" class="audio-btn playing" onclick="toggleAudio()">&#x1F50A;</button>
 <script>
 function setLang(lang){
   localStorage.setItem('katha_lang',lang);
@@ -1652,7 +1652,7 @@ function setLang(lang){
   document.querySelector('.lang-btn[onclick="setLang(\\''+lang+'\\')"]').classList.add('active');
 }
 (function(){var l=localStorage.getItem('katha_lang')||'en';setLang(l);})();
-var audioPlaying=false;
+var audioPlaying=true;
 function toggleAudio(){
   var a=document.getElementById('bgAudio');
   var btn=document.getElementById('audioBtn');
@@ -1667,10 +1667,30 @@ function toggleAudio(){
 (function(){
   var a=document.getElementById('bgAudio');
   a.volume=0.5;
-  a.play().then(function(){
-    audioPlaying=true;
-    document.getElementById('audioBtn').classList.add('playing');
-  }).catch(function(){});
+  var tryPlay=function(){
+    a.play().then(function(){
+      audioPlaying=true;
+      document.getElementById('audioBtn').classList.add('playing');
+    }).catch(function(){
+      audioPlaying=false;
+      document.getElementById('audioBtn').innerHTML='&#x1F507;';
+      document.getElementById('audioBtn').classList.remove('playing');
+      document.addEventListener('touchstart',resumeAudio,{once:true});
+      document.addEventListener('click',resumeAudio,{once:true});
+      document.addEventListener('scroll',resumeAudio,{once:true});
+    });
+  };
+  function resumeAudio(){
+    a.play().then(function(){
+      audioPlaying=true;
+      var btn=document.getElementById('audioBtn');
+      btn.innerHTML='&#x1F50A;';btn.classList.add('playing');
+    }).catch(function(){});
+    document.removeEventListener('touchstart',resumeAudio);
+    document.removeEventListener('click',resumeAudio);
+    document.removeEventListener('scroll',resumeAudio);
+  }
+  tryPlay();
 })();
 </script>
 </body>
