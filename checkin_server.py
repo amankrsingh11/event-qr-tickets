@@ -861,6 +861,10 @@ body::before{
         <option value="2" {{ 'selected' if prev.attendees == '2' }}>2</option>
       </select>
     </div>
+    <div class="form-group {{ 'disabled' if spots_left <= 0 }}">
+      <label><span class="field-icon">&#x1F64F;</span> <span data-en="Invitee Phone Number" data-hi="निमंत्रणकर्ता का फ़ोन नंबर">Invitee Phone Number</span></label>
+      <input type="tel" name="invitee_phone" {{ 'disabled' if spots_left <= 0 }} required data-ph-en="Invitee's 10-digit mobile number" data-ph-hi="निमंत्रणकर्ता का 10 अंकों का मोबाइल नंबर" placeholder="Invitee's 10-digit mobile number" pattern="[0-9]{10}" title="Enter 10-digit phone number" value="{{ prev.invitee_phone or '' }}">
+    </div>
     <button type="submit" class="submit-btn" id="submitBtn" {{ 'disabled' if spots_left <= 0 }} data-en="&#x1F64F; REGISTER &amp; GET QR PASS" data-hi="&#x1F64F; पंजीकरण करें और QR पास पाएं">&#x1F64F; REGISTER &amp; GET QR PASS</button>
   </form>
   </div>
@@ -1491,7 +1495,7 @@ def register_form():
     spots_left = max(0, TOTAL_CAPACITY - total_attendees_registered(registrations))
     resp = make_response(render_template_string(REGISTER_HTML,
         date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
-        error=None, prev={"name": "", "phone": phone, "attendees": "", "invitee_name": ""}))
+        error=None, prev={"name": "", "phone": phone, "attendees": "", "invitee_phone": ""}))
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return resp
 
@@ -1508,8 +1512,9 @@ def register_submit():
     name = request.form.get("name", "").strip()
     phone = request.form.get("phone", "").strip()
     attendees = int(request.form.get("attendees", "1").strip())
+    invitee_phone = request.form.get("invitee_phone", "").strip()
 
-    prev = {"name": name, "phone": phone, "attendees": str(attendees), "invitee_name": ""}
+    prev = {"name": name, "phone": phone, "attendees": str(attendees), "invitee_phone": invitee_phone}
     registrations = load_registrations(date_str)
     spots_left = max(0, TOTAL_CAPACITY - total_attendees_registered(registrations))
 
@@ -1518,7 +1523,7 @@ def register_submit():
         return render_template_string(ALREADY_REGISTERED_HTML,
             name=reg["name"], attendees=reg["attendees"], phone=phone, date_str=date_str)
 
-    if not name or not phone:
+    if not name or not phone or not invitee_phone:
         return render_template_string(REGISTER_HTML,
             date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
             error="All fields are mandatory.", prev=prev)
@@ -1528,12 +1533,17 @@ def register_submit():
             date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
             error="Please enter a valid 10-digit phone number.", prev=prev)
 
-    if phone not in PHONE_WHITELIST:
+    if len(invitee_phone) != 10 or not invitee_phone.isdigit():
         return render_template_string(REGISTER_HTML,
             date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
-            error="This phone number is not authorized to register. Please contact the organizer.", prev=prev)
+            error="Please enter a valid 10-digit invitee phone number.", prev=prev)
 
-    invitee_name = PHONE_WHITELIST[phone]
+    if invitee_phone not in PHONE_WHITELIST:
+        return render_template_string(REGISTER_HTML,
+            date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+            error="Invitee phone number is not recognized. Please check with the organizer.", prev=prev)
+
+    invitee_name = PHONE_WHITELIST[invitee_phone]
 
     if attendees < 1 or attendees > MAX_ATTENDEES:
         return render_template_string(REGISTER_HTML,
