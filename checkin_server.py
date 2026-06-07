@@ -1536,26 +1536,6 @@ body{
 .audio-btn:hover{transform:scale(1.1);box-shadow:0 4px 30px rgba(255,140,0,0.5);}
 .audio-btn.playing{animation:audioPulse 2s ease-in-out infinite;}
 @keyframes audioPulse{0%,100%{box-shadow:0 4px 20px rgba(255,140,0,0.3);}50%{box-shadow:0 4px 30px rgba(255,215,0,0.6);}}
-.splash-overlay{
-  position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;
-  background:#1a0a00;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;text-align:center;
-  cursor:pointer;padding:20px;
-}
-.splash-overlay .splash-om{
-  font-family:'Tiro Devanagari Hindi',serif;font-size:4rem;color:#FF8C00;
-  text-shadow:0 0 40px rgba(255,140,0,0.6);margin-bottom:16px;
-  animation:divineGlow 3s ease-in-out infinite alternate;
-}
-.splash-overlay .splash-title{
-  font-family:'Tiro Devanagari Hindi',serif;font-size:1.8rem;
-  color:#FFD700;margin-bottom:8px;
-}
-.splash-overlay .splash-tap{
-  font-size:0.9rem;color:rgba(255,255,255,0.6);margin-top:24px;
-  animation:tapPulse 2s ease-in-out infinite;
-}
-@keyframes tapPulse{0%,100%{opacity:0.6;}50%{opacity:1;}}
 .lang-toggle{
   position:absolute;top:16px;right:16px;z-index:10;display:flex;
 }
@@ -1613,11 +1593,6 @@ body{
 </style>
 </head>
 <body>
-<div class="splash-overlay" id="splashOverlay" onclick="enterSite()">
-  <div class="splash-om">&#x1F549;</div>
-  <div class="splash-title">श्रीमद् भागवत कथा</div>
-  <div class="splash-tap">Tap to Enter / प्रवेश के लिए टैप करें</div>
-</div>
 <div class="hero">
   <div class="hero-bg"></div>
   <div class="lang-toggle">
@@ -1663,7 +1638,7 @@ body{
     Kindly reach 15-30 minutes before the Katha begins
   </div>
 </div>
-<audio id="bgAudio" loop preload="auto">
+<audio id="bgAudio" loop autoplay preload="auto">
   <source src="/static/bhajan.mp3" type="audio/mpeg">
 </audio>
 <button id="audioBtn" class="audio-btn playing" onclick="toggleAudio()">&#x1F50A;</button>
@@ -1678,18 +1653,6 @@ function setLang(lang){
 }
 (function(){var l=localStorage.getItem('katha_lang')||'en';setLang(l);})();
 var audioPlaying=false;
-function enterSite(){
-  var splash=document.getElementById('splashOverlay');
-  splash.style.opacity='0';splash.style.transition='opacity 0.5s';
-  setTimeout(function(){splash.style.display='none';},500);
-  var a=document.getElementById('bgAudio');
-  a.volume=0.5;
-  a.play().then(function(){
-    audioPlaying=true;
-    document.getElementById('audioBtn').classList.add('playing');
-    document.getElementById('audioBtn').innerHTML='&#x1F50A;';
-  }).catch(function(){});
-}
 function toggleAudio(){
   var a=document.getElementById('bgAudio');
   var btn=document.getElementById('audioBtn');
@@ -1701,6 +1664,26 @@ function toggleAudio(){
     }).catch(function(){});
   }
 }
+(function(){
+  var a=document.getElementById('bgAudio');
+  a.volume=0.5;
+  a.play().then(function(){
+    audioPlaying=true;
+  }).catch(function(){
+    document.getElementById('audioBtn').innerHTML='&#x1F507;';
+    document.getElementById('audioBtn').classList.remove('playing');
+    ['touchstart','click','scroll'].forEach(function(evt){
+      document.addEventListener(evt,function h(){
+        a.play().then(function(){
+          audioPlaying=true;
+          document.getElementById('audioBtn').innerHTML='&#x1F50A;';
+          document.getElementById('audioBtn').classList.add('playing');
+        });
+        ['touchstart','click','scroll'].forEach(function(e){document.removeEventListener(e,h);});
+      },{once:true});
+    });
+  });
+})();
 </script>
 </body>
 </html>
