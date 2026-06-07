@@ -424,7 +424,7 @@ function showResult(d,t){const o=document.getElementById("resultOverlay"),i=docu
 function dismissResult(){document.getElementById("resultOverlay").className="result-overlay";scanning=true;scanner.resume();}
 async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("checkedIn").textContent=d.used;document.getElementById("totalTickets").textContent=d.total;document.getElementById("remaining").textContent=d.remaining;}catch(e){}}
 async function refreshLog(){try{const r=await fetch("/api/recent-scans"),d=await r.json();const c=document.getElementById("logEntries");c.innerHTML='';d.scans.forEach(s=>{const div=document.createElement("div");div.className="log-entry "+(s.ok?"ok":"fail");div.innerHTML='<span>'+(s.ok?"\\u2713":"\\u2717")+' #'+String(s.serial).padStart(3,'0')+' '+s.name+'</span><span>'+s.time+'</span>';c.appendChild(div);});}catch(e){}}
-document.addEventListener("DOMContentLoaded",()=>{refreshStats();refreshLog();initScanner();setInterval(()=>{refreshStats();refreshLog();},5000);});
+document.addEventListener("DOMContentLoaded",()=>{refreshStats();refreshLog();initScanner();setInterval(()=>{refreshStats();refreshLog();},10000);});
 </script>
 </body>
 </html>
