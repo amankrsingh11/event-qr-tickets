@@ -2807,7 +2807,6 @@ def api_registrations():
     })
 
 
-if __name__ == "__main__":
 @app.route("/api/cron-clear", methods=["GET"])
 def cron_clear():
     """Daily cron: clear all Redis keys except universal_tickets."""
