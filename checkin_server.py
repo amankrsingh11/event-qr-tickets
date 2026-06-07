@@ -18,7 +18,9 @@ from flask import Flask, request, jsonify, render_template_string, redirect, mak
 
 app = Flask(__name__)
 
-TOTAL_CAPACITY = 250
+REG_CAPACITY = 250
+TATKAL_CAPACITY = 50
+TOTAL_CAPACITY = REG_CAPACITY + TATKAL_CAPACITY + 50  # 250 reg + 50 tatkal + 50 universal = 350
 MAX_ATTENDEES = 2
 TICKET_SECRET = os.environ.get("TICKET_SECRET", "katha-qr-2026-secret")
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -60,7 +62,7 @@ def generate_ticket_id(date_str, serial):
 
 def get_valid_tickets_for_date(date_str):
     tickets = {}
-    for serial in range(1, TOTAL_CAPACITY + 1):
+    for serial in range(1, REG_CAPACITY + 1):
         tid = generate_ticket_id(date_str, serial)
         tickets[tid] = serial
     return tickets
@@ -282,10 +284,13 @@ def get_assigned_serials(registrations):
 def total_attendees_registered(registrations):
     return sum(int(r["attendees"]) for r in registrations.values())
 
+def reg_attendees_count(registrations):
+    return sum(int(r["attendees"]) for r in registrations.values() if r.get("type") != "tatkal")
+
 def get_next_available_tickets(count, date_str, registrations):
     assigned = get_assigned_serials(registrations)
     tickets = []
-    for serial in range(1, TOTAL_CAPACITY + 1):
+    for serial in range(1, REG_CAPACITY + 1):
         if serial not in assigned:
             tid = generate_ticket_id(date_str, serial)
             tickets.append((serial, tid))
@@ -502,9 +507,10 @@ SCANNER_HTML = """
   <h1>SHRIMAD BHAGWAT KATHA</h1>
   <div class="subtitle">Check-in Scanner</div>
   <div class="date-badge" id="todayDate"></div>
-  <div class="stats">
-    <div>Guest: <span id="guestUsed">0</span> / <span id="guestTotal">250</span> &nbsp;|&nbsp; Left: <span id="guestRemaining">0</span></div>
-    <div style="margin-top:4px;">Universal: <span id="univUsed">0</span> / <span id="univTotal">50</span> &nbsp;|&nbsp; Left: <span id="univRemaining">0</span></div>
+  <div class="stats" style="flex-direction:column;gap:4px;">
+    <div>Reg: <span id="regUsed">0</span> / <span id="regTotal">250</span> &nbsp;|&nbsp; Left: <span id="regRemaining">0</span></div>
+    <div>Tatkal: <span id="tatkalUsed">0</span> / <span id="tatkalTotal">50</span> &nbsp;|&nbsp; Left: <span id="tatkalRemaining">0</span></div>
+    <div>Universal: <span id="univUsed">0</span> / <span id="univTotal">50</span> &nbsp;|&nbsp; Left: <span id="univRemaining">0</span></div>
   </div>
 </div>
 <div id="reader-container"><div id="reader"></div></div>
@@ -557,7 +563,7 @@ function initScanner(){scanner=new Html5Qrcode("reader");scanner.start({facingMo
 async function onScanSuccess(t){if(!scanning)return;scanning=false;scanner.pause(true);try{const r=await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticket_id:t})});const d=await r.json();showResult(d,t);refreshStats();refreshLog();}catch(e){showResult({status:"error"},t);}}
 function showResult(d,t){const o=document.getElementById("resultOverlay"),i=document.getElementById("resultIcon"),tt=document.getElementById("resultTitle"),dd=document.getElementById("resultDetail"),tid=document.getElementById("resultTicketId");o.className="result-overlay show";tid.textContent=t;if(d.status==="ok"){o.classList.add("valid");i.textContent="\\u2713";tt.textContent="WELCOME!";dd.textContent="Entry #"+d.serial+" \\u2014 "+d.entry_number+" of "+d.total;}else if(d.status==="already_used"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="ALREADY USED";dd.textContent="Scanned at "+d.used_at;}else if(d.status==="wrong_day"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="WRONG DAY";dd.textContent="Not valid today.";}else{o.classList.add("unknown");i.textContent="?";tt.textContent="INVALID";dd.textContent="QR not recognized.";}}
 function dismissResult(){document.getElementById("resultOverlay").className="result-overlay";scanning=true;scanner.resume();}
-async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("guestUsed").textContent=d.guest_used;document.getElementById("guestTotal").textContent=d.guest_total;document.getElementById("guestRemaining").textContent=d.guest_remaining;document.getElementById("univUsed").textContent=d.univ_used;document.getElementById("univTotal").textContent=d.univ_total;document.getElementById("univRemaining").textContent=d.univ_remaining;}catch(e){}}
+async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("regUsed").textContent=d.reg_used;document.getElementById("regTotal").textContent=d.reg_total;document.getElementById("regRemaining").textContent=d.reg_remaining;document.getElementById("tatkalUsed").textContent=d.tatkal_used;document.getElementById("tatkalTotal").textContent=d.tatkal_total;document.getElementById("tatkalRemaining").textContent=d.tatkal_remaining;document.getElementById("univUsed").textContent=d.univ_used;document.getElementById("univTotal").textContent=d.univ_total;document.getElementById("univRemaining").textContent=d.univ_remaining;}catch(e){}}
 async function refreshLog(){try{const r=await fetch("/api/recent-scans"),d=await r.json();const c=document.getElementById("logEntries");c.innerHTML='';d.scans.forEach(s=>{const div=document.createElement("div");div.className="log-entry "+(s.ok?"ok":"fail");div.innerHTML='<span>'+(s.ok?"\\u2713":"\\u2717")+' #'+String(s.serial).padStart(3,'0')+' '+s.name+'</span><span>'+s.time+'</span>';c.appendChild(div);});}catch(e){}}
 async function submitTatkal(){
   var btn=document.getElementById('tkSubmit'),msg=document.getElementById('tkMsg');
@@ -1646,9 +1652,9 @@ def register_form():
         return render_template_string(ALREADY_REGISTERED_HTML,
             name=reg["name"], attendees=reg["attendees"], phone=phone, date_str=date_str)
 
-    spots_left = max(0, TOTAL_CAPACITY - total_attendees_registered(registrations))
+    spots_left = max(0, REG_CAPACITY - reg_attendees_count(registrations))
     resp = make_response(render_template_string(REGISTER_HTML,
-        date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+        date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
         error=None, prev={"name": "", "phone": phone, "attendees": "", "invitee_phone": ""}))
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return resp
@@ -1670,7 +1676,7 @@ def register_submit():
 
     prev = {"name": name, "phone": phone, "attendees": str(attendees), "invitee_phone": invitee_phone}
     registrations = load_registrations(date_str)
-    spots_left = max(0, TOTAL_CAPACITY - total_attendees_registered(registrations))
+    spots_left = max(0, REG_CAPACITY - reg_attendees_count(registrations))
 
     if phone in registrations:
         reg = registrations[phone]
@@ -1679,40 +1685,40 @@ def register_submit():
 
     if not name or not phone or not invitee_phone:
         return render_template_string(REGISTER_HTML,
-            date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+            date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
             error="All fields are mandatory.", prev=prev)
 
     if len(phone) != 10 or not phone.isdigit():
         return render_template_string(REGISTER_HTML,
-            date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+            date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
             error="Please enter a valid 10-digit phone number.", prev=prev)
 
     if len(invitee_phone) != 10 or not invitee_phone.isdigit():
         return render_template_string(REGISTER_HTML,
-            date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+            date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
             error="Please enter a valid 10-digit invitee phone number.", prev=prev)
 
     if invitee_phone not in PHONE_WHITELIST:
         return render_template_string(REGISTER_HTML,
-            date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+            date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
             error="Invitee phone number is not recognized. Please check with the organizer.", prev=prev)
 
     invitee_name = PHONE_WHITELIST[invitee_phone]
 
     if attendees < 1 or attendees > MAX_ATTENDEES:
         return render_template_string(REGISTER_HTML,
-            date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+            date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
             error=f"Number of attendees must be between 1 and {MAX_ATTENDEES}.", prev=prev)
 
     if spots_left < attendees:
         return render_template_string(REGISTER_HTML,
-            date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+            date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
             error=f"Only {spots_left} spots left, but you requested {attendees}.", prev=prev)
 
     available = get_next_available_tickets(attendees, date_str, registrations)
     if len(available) < attendees:
         return render_template_string(REGISTER_HTML,
-            date_display=date_display, spots_left=spots_left, total=TOTAL_CAPACITY,
+            date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
             error="Not enough passes available.", prev=prev)
 
     tickets_data = []
@@ -2138,7 +2144,7 @@ def update_registration():
 
     if new_attendees > old_attendees:
         extra_needed = new_attendees - old_attendees
-        spots_left = TOTAL_CAPACITY - total_attendees_registered(registrations)
+        spots_left = REG_CAPACITY - reg_attendees_count(registrations)
         if spots_left < extra_needed:
             return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
                 error=f"Only {spots_left} spots left. Cannot add {extra_needed} more.", success=None)
@@ -2366,7 +2372,7 @@ def cancel_registration():
 
 @app.route("/qr-image/<date_str>/<int:serial>")
 def serve_qr_image(date_str, serial):
-    if serial < 1 or serial > TOTAL_CAPACITY:
+    if serial < 1 or serial > (REG_CAPACITY + TATKAL_CAPACITY):
         return "Not found", 404
     ticket_id = generate_ticket_id(date_str, serial)
     img_bytes = generate_qr_bytes(ticket_id)
@@ -2581,17 +2587,29 @@ def stats():
     date_str = today_ist()
     registrations = load_registrations(date_str)
     used_tickets = load_used_tickets(date_str)
-    total_att = total_attendees_registered(registrations)
 
-    guest_used = sum(1 for k in used_tickets if not k.startswith("SBK-UNIV-"))
+    reg_att = reg_attendees_count(registrations)
+    tatkal_att = sum(int(r["attendees"]) for r in registrations.values() if r.get("type") == "tatkal")
     univ_used = sum(1 for k in used_tickets if k.startswith("SBK-UNIV-"))
 
+    reg_checked = 0
+    tatkal_checked = 0
+    for k in used_tickets:
+        if k.startswith("SBK-UNIV-"):
+            continue
+        serial_str = used_tickets[k].get("serial_label", "")
+        if isinstance(serial_str, str) and serial_str.isdigit() and int(serial_str) > REG_CAPACITY:
+            tatkal_checked += 1
+        elif not k.startswith("SBK-UNIV-"):
+            reg_checked += 1
+
     return jsonify({
-        "total": TOTAL_CAPACITY, "spots_left": TOTAL_CAPACITY - total_att,
-        "registered_people": total_att, "registered_groups": len(registrations),
+        "total": TOTAL_CAPACITY, "spots_left": REG_CAPACITY - reg_att,
         "date": date_str,
-        "guest_total": TOTAL_CAPACITY, "guest_used": guest_used,
-        "guest_remaining": TOTAL_CAPACITY - guest_used,
+        "reg_total": REG_CAPACITY, "reg_used": reg_checked,
+        "reg_remaining": REG_CAPACITY - reg_checked,
+        "tatkal_total": TATKAL_CAPACITY, "tatkal_used": tatkal_checked,
+        "tatkal_remaining": TATKAL_CAPACITY - tatkal_checked,
         "univ_total": UNIVERSAL_COUNT, "univ_used": univ_used,
         "univ_remaining": UNIVERSAL_COUNT - univ_used,
     })
@@ -2636,10 +2654,31 @@ def tatkal_register():
     if len(available) < attendees:
         return jsonify({"status": "error", "message": "Not enough passes available."})
 
-    tickets_data = [{"serial": s, "ticket_id": tid} for s, tid in available]
+    tatkal_regs = {p: r for p, r in registrations.items() if r.get("type") == "tatkal"}
+    tatkal_count = sum(int(r["attendees"]) for r in tatkal_regs.values())
+    if tatkal_count + attendees > TATKAL_CAPACITY:
+        remaining = TATKAL_CAPACITY - tatkal_count
+        return jsonify({"status": "error", "message": f"Only {remaining} tatkal spots left."})
+
+    tatkal_serial_start = REG_CAPACITY + 1
+    used_serials = set()
+    for r in registrations.values():
+        for t in r.get("tickets", []):
+            used_serials.add(t["serial"])
+    tickets_data = []
+    for s in range(tatkal_serial_start, tatkal_serial_start + TATKAL_CAPACITY):
+        if len(tickets_data) >= attendees:
+            break
+        if s not in used_serials:
+            tid = generate_ticket_id(date_str, s)
+            tickets_data.append({"serial": s, "ticket_id": tid})
+
+    if len(tickets_data) < attendees:
+        return jsonify({"status": "error", "message": "Not enough tatkal passes available."})
+
     registrations[phone] = {
         "name": name, "attendees": attendees, "invitee_name": invitee_name,
-        "tickets": tickets_data,
+        "tickets": tickets_data, "type": "tatkal",
         "registered_at": now_ist().strftime("%Y-%m-%d %I:%M %p"),
     }
     save_registrations(date_str, registrations)
@@ -2670,7 +2709,8 @@ def api_registrations():
     registrations = load_registrations(date_str)
     return jsonify({
         "date": date_str, "total_registered": len(registrations),
-        "total_capacity": TOTAL_CAPACITY, "registrations": registrations,
+        "total_capacity": TOTAL_CAPACITY, "reg_capacity": REG_CAPACITY,
+        "tatkal_capacity": TATKAL_CAPACITY, "registrations": registrations,
     })
 
 
