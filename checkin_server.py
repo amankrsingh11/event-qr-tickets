@@ -190,6 +190,20 @@ def sheet_update_registration(date_str, name, phone, attendees, invitee_name, ti
     except Exception as e:
         print(f"Google Sheets (update) error: {e}", flush=True)
 
+def sheet_delete_registration(phone):
+    if not GOOGLE_SHEETS_ENABLED:
+        return
+    try:
+        gc = _get_gspread()
+        sh = gc.open_by_key(GOOGLE_SHEET_ID)
+        ws = _get_or_create_worksheet(sh, "Registrations",
+            ["Date", "Time", "Name", "Phone", "Attendees", "Invitee Name", "Tickets"])
+        cell = ws.find(phone)
+        if cell:
+            ws.delete_rows(cell.row)
+    except Exception as e:
+        print(f"Google Sheets (delete) error: {e}", flush=True)
+
 def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone):
     if not GOOGLE_SHEETS_ENABLED:
         return
@@ -2217,6 +2231,7 @@ def cancel_registration():
 
     reg = registrations.pop(phone)
     save_registrations(date_str, registrations)
+    sheet_delete_registration(phone)
     print(f"Cancelled registration: {reg['name']} ({phone}) [{date_str}]", flush=True)
 
     return render_template_string(CANCEL_HTML, reg=None, phone=phone,
