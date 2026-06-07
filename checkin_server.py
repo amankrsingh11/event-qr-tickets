@@ -65,6 +65,46 @@ def get_valid_tickets_for_date(date_str):
         tickets[tid] = serial
     return tickets
 
+UNIVERSAL_COUNT = 50
+
+def generate_universal_ticket_id(serial):
+    raw = f"UNIVERSAL-{serial:03d}-{TICKET_SECRET}"
+    short_hash = hashlib.sha256(raw.encode()).hexdigest()[:10].upper()
+    return f"SBK-UNIV-{serial:03d}-{short_hash}"
+
+def get_universal_tickets():
+    tickets = {}
+    for serial in range(1, UNIVERSAL_COUNT + 1):
+        tid = generate_universal_ticket_id(serial)
+        tickets[tid] = serial
+    return tickets
+
+def load_universal_tickets():
+    key = "universal_tickets"
+    if USE_REDIS:
+        raw = _get_redis().get(key)
+        return json.loads(raw) if raw else {}
+    return _load_json_file(os.path.join(LOCAL_DATA_DIR, "universal_tickets.json"))
+
+def save_universal_tickets(data):
+    key = "universal_tickets"
+    if USE_REDIS:
+        _get_redis().set(key, json.dumps(data))
+    else:
+        _save_json_file(os.path.join(LOCAL_DATA_DIR, "universal_tickets.json"), data)
+
+def init_universal_tickets():
+    """Initialize universal tickets in Redis if not already present."""
+    existing = load_universal_tickets()
+    if existing:
+        return existing
+    tickets = {}
+    for serial in range(1, UNIVERSAL_COUNT + 1):
+        tid = generate_universal_ticket_id(serial)
+        tickets[tid] = {"serial": serial, "ticket_id": tid}
+    save_universal_tickets(tickets)
+    return tickets
+
 # ---------------------------------------------------------------------------
 # Storage backend
 # ---------------------------------------------------------------------------
@@ -2250,38 +2290,168 @@ def serve_qr_image(date_str, serial):
     }
 
 
+@app.route("/universal-qr/<int:serial>")
+def serve_universal_qr_image(serial):
+    if serial < 1 or serial > UNIVERSAL_COUNT:
+        return "Not found", 404
+    ticket_id = generate_universal_ticket_id(serial)
+    img_bytes = generate_qr_bytes(ticket_id)
+    return img_bytes, 200, {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=31536000",
+    }
+
+
+UNIVERSAL_PASSES_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universal Passes | Shrimad Bhagwat Katha</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#1a0a00;min-height:100vh;padding:20px;color:#fff;
+}
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 50% 20%,rgba(255,140,0,0.12) 0%,transparent 60%);
+  pointer-events:none;
+}
+.page{position:relative;z-index:1;max-width:800px;margin:0 auto;}
+h1{font-family:'Playfair Display',serif;font-size:1.6rem;color:#FFD700;text-align:center;margin-bottom:6px;}
+.sub{text-align:center;font-size:0.88rem;color:rgba(255,255,255,0.5);margin-bottom:24px;}
+.download-btn{
+  display:block;width:100%;max-width:400px;margin:0 auto 30px;padding:16px;border:none;border-radius:14px;
+  font-weight:700;font-size:1rem;color:#fff;cursor:pointer;
+  background:linear-gradient(135deg,#FF8C00,#CC5500,#8B1A1A);
+  box-shadow:0 6px 24px rgba(255,140,0,0.3);transition:all 0.2s;
+}
+.download-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px rgba(255,140,0,0.45);}
+.grid{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;}
+.qr-card{
+  background:linear-gradient(145deg,rgba(42,26,10,0.9),rgba(26,10,0,0.95));
+  border:1px solid rgba(255,165,0,0.12);border-radius:16px;padding:16px;text-align:center;
+  width:160px;
+}
+.qr-card img{width:128px;height:128px;border-radius:8px;background:#fff;padding:4px;}
+.qr-card .label{margin-top:8px;font-size:0.82rem;color:#FFD700;font-weight:600;}
+.qr-card .tid{font-size:0.6rem;color:rgba(255,255,255,0.3);margin-top:4px;word-break:break-all;}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Universal Passes</h1>
+  <p class="sub">50 permanent passes &mdash; valid every day, one scan per day</p>
+  <button class="download-btn" onclick="downloadPDF()">Download All as PDF</button>
+  <div class="grid">
+    {% for t in tickets %}
+    <div class="qr-card">
+      <img src="/universal-qr/{{ t.serial }}" alt="U-{{ '%03d' % t.serial }}" crossorigin="anonymous">
+      <div class="label">Pass #U-{{ '%03d' % t.serial }}</div>
+      <div class="tid">{{ t.ticket_id }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+<script>
+async function downloadPDF(){
+  var btn=document.querySelector('.download-btn');
+  btn.textContent='Generating PDF...';btn.disabled=true;
+  var{jsPDF}=window.jspdf;
+  var doc=new jsPDF({unit:'mm',format:'a4'});
+  var imgs=document.querySelectorAll('.qr-card img');
+  for(var i=0;i<imgs.length;i++){
+    if(i>0) doc.addPage();
+    var canvas=document.createElement('canvas');
+    canvas.width=400;canvas.height=400;
+    var ctx=canvas.getContext('2d');
+    var img=new Image();img.crossOrigin='anonymous';
+    img.src=imgs[i].src;
+    await new Promise(function(r){img.onload=r;});
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,400,400);
+    ctx.drawImage(img,0,0,400,400);
+    var data=canvas.toDataURL('image/png');
+    doc.setFontSize(24);doc.setTextColor(139,26,26);
+    doc.text('Shrimad Bhagwat Katha',105,30,{align:'center'});
+    doc.setFontSize(16);doc.setTextColor(80,80,80);
+    doc.text('Universal Pass #U-'+String(i+1).padStart(3,'0'),105,42,{align:'center'});
+    doc.addImage(data,'PNG',42.5,55,125,125);
+    doc.setFontSize(10);doc.setTextColor(150,150,150);
+    doc.text('Valid every day | One scan per day',105,195,{align:'center'});
+  }
+  doc.save('Universal-Passes.pdf');
+  btn.textContent='Download All as PDF';btn.disabled=false;
+}
+</script>
+</body>
+</html>
+"""
+
+
+@app.route("/universal-passes")
+def universal_passes():
+    password = request.cookies.get("scanner_auth")
+    if password != os.environ.get("SCANNER_PASSWORD", "admin"):
+        return redirect("/scanner")
+    init_universal_tickets()
+    tickets = []
+    for serial in range(1, UNIVERSAL_COUNT + 1):
+        tid = generate_universal_ticket_id(serial)
+        tickets.append({"serial": serial, "ticket_id": tid})
+    return render_template_string(UNIVERSAL_PASSES_HTML, tickets=tickets)
+
+
 @app.route("/api/checkin", methods=["POST"])
 def checkin():
     data = request.get_json()
     ticket_id = data.get("ticket_id", "").strip()
     date_str = today_ist()
-    valid_tickets = get_valid_tickets_for_date(date_str)
 
-    if ticket_id not in valid_tickets:
-        if ticket_id.startswith("SBK-") or ticket_id.startswith("EVT-"):
-            return jsonify({"status": "wrong_day", "message": "This ticket is not for today"})
-        return jsonify({"status": "invalid", "message": "Ticket not recognized"})
+    universal_tickets = get_universal_tickets()
+    is_universal = ticket_id in universal_tickets
+
+    if is_universal:
+        serial = universal_tickets[ticket_id]
+        serial_label = f"U-{serial:03d}"
+    else:
+        valid_tickets = get_valid_tickets_for_date(date_str)
+        if ticket_id not in valid_tickets:
+            if ticket_id.startswith("SBK-") or ticket_id.startswith("EVT-"):
+                return jsonify({"status": "wrong_day", "message": "This ticket is not for today"})
+            return jsonify({"status": "invalid", "message": "Ticket not recognized"})
+        serial = valid_tickets[ticket_id]
+        serial_label = f"{serial:03d}"
 
     used_tickets = load_used_tickets(date_str)
     if ticket_id in used_tickets:
         return jsonify({
             "status": "already_used",
             "used_at": used_tickets[ticket_id]["used_at"],
-            "serial": valid_tickets[ticket_id]
+            "serial": used_tickets[ticket_id].get("serial_label", serial_label)
         })
 
-    serial = valid_tickets[ticket_id]
     now_str = now_ist().strftime("%I:%M %p")
-    used_tickets[ticket_id] = {"serial": serial, "used_at": now_str}
+    used_tickets[ticket_id] = {"serial": serial_label, "used_at": now_str, "serial_label": serial_label}
     save_used_tickets(date_str, used_tickets)
 
-    reg_name, reg_phone = find_registration_by_ticket(date_str, ticket_id)
-    sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone)
-    _append_scan_log(date_str, serial, reg_name, now_str, True)
+    if is_universal:
+        reg_name = f"Universal Pass #{serial}"
+        reg_phone = "—"
+    else:
+        reg_name, reg_phone = find_registration_by_ticket(date_str, ticket_id)
+
+    sheet_append_checkin(date_str, serial_label, ticket_id, reg_name, reg_phone)
+    _append_scan_log(date_str, serial_label, reg_name, now_str, True)
 
     return jsonify({
-        "status": "ok", "serial": serial,
-        "entry_number": len(used_tickets), "total": len(valid_tickets),
+        "status": "ok", "serial": serial_label,
+        "entry_number": len(used_tickets),
+        "total": len(get_valid_tickets_for_date(date_str)) + UNIVERSAL_COUNT,
     })
 
 
