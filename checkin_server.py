@@ -2648,9 +2648,19 @@ def tatkal_register():
     print(f"Tatkal registered: {name} ({phone}) -> {attendees} pass(es) [{date_str}]", flush=True)
     sheet_append_registration(date_str, name, phone, attendees, invitee_name, serials)
 
+    now_str = now_ist().strftime("%I:%M %p")
+    used_tickets = load_used_tickets(date_str)
+    for t in tickets_data:
+        tid = t["ticket_id"]
+        serial_label = f"{t['serial']:03d}"
+        used_tickets[tid] = {"serial": serial_label, "used_at": now_str, "serial_label": serial_label}
+        sheet_append_checkin(date_str, serial_label, tid, name, phone)
+        _append_scan_log(date_str, serial_label, name + " (Tatkal)", now_str, True)
+    save_used_tickets(date_str, used_tickets)
+
     return jsonify({
         "status": "ok", "name": name, "attendees": attendees,
-        "invitee_name": invitee_name, "tickets": tickets_data,
+        "invitee_name": invitee_name, "checked_in": True,
     })
 
 
