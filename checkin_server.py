@@ -469,8 +469,8 @@ SCANNER_HTML = """
   <div class="subtitle">Check-in Scanner</div>
   <div class="date-badge" id="todayDate"></div>
   <div class="stats">
-    Checked in: <span id="checkedIn">0</span> / <span id="totalTickets">0</span>
-    &nbsp;|&nbsp; Remaining: <span id="remaining">0</span>
+    <div>Guest: <span id="guestUsed">0</span> / <span id="guestTotal">250</span> &nbsp;|&nbsp; Left: <span id="guestRemaining">0</span></div>
+    <div style="margin-top:4px;">Universal: <span id="univUsed">0</span> / <span id="univTotal">50</span> &nbsp;|&nbsp; Left: <span id="univRemaining">0</span></div>
   </div>
 </div>
 <div id="reader-container"><div id="reader"></div></div>
@@ -490,7 +490,7 @@ function initScanner(){scanner=new Html5Qrcode("reader");scanner.start({facingMo
 async function onScanSuccess(t){if(!scanning)return;scanning=false;scanner.pause(true);try{const r=await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticket_id:t})});const d=await r.json();showResult(d,t);refreshStats();refreshLog();}catch(e){showResult({status:"error"},t);}}
 function showResult(d,t){const o=document.getElementById("resultOverlay"),i=document.getElementById("resultIcon"),tt=document.getElementById("resultTitle"),dd=document.getElementById("resultDetail"),tid=document.getElementById("resultTicketId");o.className="result-overlay show";tid.textContent=t;if(d.status==="ok"){o.classList.add("valid");i.textContent="\\u2713";tt.textContent="WELCOME!";dd.textContent="Entry #"+d.serial+" \\u2014 "+d.entry_number+" of "+d.total;}else if(d.status==="already_used"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="ALREADY USED";dd.textContent="Scanned at "+d.used_at;}else if(d.status==="wrong_day"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="WRONG DAY";dd.textContent="Not valid today.";}else{o.classList.add("unknown");i.textContent="?";tt.textContent="INVALID";dd.textContent="QR not recognized.";}}
 function dismissResult(){document.getElementById("resultOverlay").className="result-overlay";scanning=true;scanner.resume();}
-async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("checkedIn").textContent=d.used;document.getElementById("totalTickets").textContent=d.total;document.getElementById("remaining").textContent=d.remaining;}catch(e){}}
+async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("guestUsed").textContent=d.guest_used;document.getElementById("guestTotal").textContent=d.guest_total;document.getElementById("guestRemaining").textContent=d.guest_remaining;document.getElementById("univUsed").textContent=d.univ_used;document.getElementById("univTotal").textContent=d.univ_total;document.getElementById("univRemaining").textContent=d.univ_remaining;}catch(e){}}
 async function refreshLog(){try{const r=await fetch("/api/recent-scans"),d=await r.json();const c=document.getElementById("logEntries");c.innerHTML='';d.scans.forEach(s=>{const div=document.createElement("div");div.className="log-entry "+(s.ok?"ok":"fail");div.innerHTML='<span>'+(s.ok?"\\u2713":"\\u2717")+' #'+String(s.serial).padStart(3,'0')+' '+s.name+'</span><span>'+s.time+'</span>';c.appendChild(div);});}catch(e){}}
 document.addEventListener("DOMContentLoaded",()=>{refreshStats();refreshLog();initScanner();setInterval(()=>{refreshStats();refreshLog();},10000);});
 </script>
@@ -2468,11 +2468,18 @@ def stats():
     registrations = load_registrations(date_str)
     used_tickets = load_used_tickets(date_str)
     total_att = total_attendees_registered(registrations)
+
+    guest_used = sum(1 for k in used_tickets if not k.startswith("SBK-UNIV-"))
+    univ_used = sum(1 for k in used_tickets if k.startswith("SBK-UNIV-"))
+
     return jsonify({
-        "total": TOTAL_CAPACITY, "used": len(used_tickets),
-        "remaining": TOTAL_CAPACITY - len(used_tickets),
+        "total": TOTAL_CAPACITY, "spots_left": TOTAL_CAPACITY - total_att,
         "registered_people": total_att, "registered_groups": len(registrations),
-        "spots_left": TOTAL_CAPACITY - total_att, "date": date_str,
+        "date": date_str,
+        "guest_total": TOTAL_CAPACITY, "guest_used": guest_used,
+        "guest_remaining": TOTAL_CAPACITY - guest_used,
+        "univ_total": UNIVERSAL_COUNT, "univ_used": univ_used,
+        "univ_remaining": UNIVERSAL_COUNT - univ_used,
     })
 
 
