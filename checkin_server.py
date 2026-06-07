@@ -246,17 +246,17 @@ def sheet_delete_registration(phone):
     except Exception as e:
         print(f"Google Sheets (delete) error: {e}", flush=True)
 
-def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone):
+def sheet_append_checkin(date_str, serial, ticket_id, reg_name, reg_phone, invitee_name=""):
     if not GOOGLE_SHEETS_ENABLED:
         return
     try:
         gc = _get_gspread()
         sh = gc.open_by_key(GOOGLE_SHEET_ID)
         ws = _get_or_create_worksheet(sh, "Check-ins",
-            ["Date", "Time", "Ticket #", "Ticket ID", "Name", "Phone"])
+            ["Date", "Time", "Ticket #", "Ticket ID", "Name", "Phone", "Invitee"])
         time_str = now_ist().strftime("%I:%M %p")
         serial_str = f"#{serial}" if isinstance(serial, str) else f"#{serial:03d}"
-        ws.append_row([date_str, time_str, serial_str, ticket_id, reg_name, reg_phone])
+        ws.append_row([date_str, time_str, serial_str, ticket_id, reg_name, reg_phone, invitee_name])
     except Exception as e:
         print(f"Google Sheets (checkin) error: {e}", flush=True)
 
@@ -303,8 +303,10 @@ def find_registration_by_ticket(date_str, ticket_id):
     for phone, reg in registrations.items():
         for t in reg.get("tickets", []):
             if t["ticket_id"] == ticket_id:
-                return reg["name"], phone
-    return "Unknown", "Unknown"
+                invitee = reg.get("invitee_name", "")
+                actual_phone = reg.get("phone", phone)
+                return reg["name"], actual_phone, invitee
+    return "Unknown", "Unknown", ""
 
 
 def _append_scan_log(date_str, serial, name, time_str, ok):
@@ -501,7 +503,7 @@ SCANNER_HTML = """
   <div class="date-badge" id="todayDate"></div>
   <div class="stats">
     <div>Reg: <span id="regUsed">0</span> / <span id="regTotal">250</span> &nbsp;|&nbsp; Left: <span id="regRemaining">0</span></div>
-    <div>Tatkal: <span id="tatkalUsed">0</span> / <span id="tatkalTotal">50</span> &nbsp;|&nbsp; Left: <span id="tatkalRemaining">0</span></div>
+    <div>Tatkal: <span id="tatkalUsed">0</span> checked in</div>
     <div>Universal: <span id="univUsed">0</span> / <span id="univTotal">50</span> &nbsp;|&nbsp; Left: <span id="univRemaining">0</span></div>
   </div>
 </div>
@@ -529,11 +531,8 @@ SCANNER_HTML = """
       </div>
     </div>
     <div class="fg">
-      <label>Number of Attendees (max 2)</label>
-      <select id="tkAttendees">
-        <option value="1">1</option>
-        <option value="2">2</option>
-      </select>
+      <label>Number of People</label>
+      <input type="number" id="tkAttendees" min="1" value="1" placeholder="Enter number of people">
     </div>
     <div class="fg">
       <label>Invitee Phone Number</label>
@@ -551,7 +550,7 @@ SCANNER_HTML = """
 let scanner,scanning=true;
 document.getElementById('todayDate').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 function initScanner(){scanner=new Html5Qrcode("reader");scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:250,height:250}},onScanSuccess,()=>{}).catch(()=>{document.getElementById("reader").innerHTML='<p style="padding:40px;text-align:center;color:#ef4444;">Camera access denied.</p>';});}
-async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("regUsed").textContent=d.reg_used;document.getElementById("regTotal").textContent=d.reg_total;document.getElementById("regRemaining").textContent=d.reg_remaining;document.getElementById("tatkalUsed").textContent=d.tatkal_used;document.getElementById("tatkalTotal").textContent=d.tatkal_total;document.getElementById("tatkalRemaining").textContent=d.tatkal_remaining;document.getElementById("univUsed").textContent=d.univ_used;document.getElementById("univTotal").textContent=d.univ_total;document.getElementById("univRemaining").textContent=d.univ_remaining;}catch(e){}}
+async function refreshStats(){try{const r=await fetch("/api/stats"),d=await r.json();document.getElementById("regUsed").textContent=d.reg_used;document.getElementById("regTotal").textContent=d.reg_total;document.getElementById("regRemaining").textContent=d.reg_remaining;document.getElementById("tatkalUsed").textContent=d.tatkal_used;document.getElementById("univUsed").textContent=d.univ_used;document.getElementById("univTotal").textContent=d.univ_total;document.getElementById("univRemaining").textContent=d.univ_remaining;}catch(e){}}
 async function onScanSuccess(t){if(!scanning)return;scanning=false;scanner.pause(true);try{const r=await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticket_id:t})});const d=await r.json();showResult(d,t);refreshStats();}catch(e){showResult({status:"error"},t);}}
 function showResult(d,t){const o=document.getElementById("resultOverlay"),i=document.getElementById("resultIcon"),tt=document.getElementById("resultTitle"),dd=document.getElementById("resultDetail"),tid=document.getElementById("resultTicketId");o.className="result-overlay show";tid.textContent=t;if(d.status==="ok"){o.classList.add("valid");i.textContent="\\u2713";tt.textContent="WELCOME!";dd.textContent="Entry #"+d.serial+" \\u2014 "+d.entry_number+" of "+d.total;}else if(d.status==="already_used"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="ALREADY USED";dd.textContent="Scanned at "+d.used_at;}else if(d.status==="wrong_day"){o.classList.add("invalid");i.textContent="\\u2717";tt.textContent="WRONG DAY";dd.textContent="Not valid today.";}else{o.classList.add("unknown");i.textContent="?";tt.textContent="INVALID";dd.textContent="QR not recognized.";}}
 function dismissResult(){document.getElementById("resultOverlay").className="result-overlay";scanning=true;scanner.resume();}
@@ -562,13 +561,14 @@ async function submitTatkal(){
   var attendees=document.getElementById('tkAttendees').value;
   var inviteePhone=document.getElementById('tkInviteePhone').value.trim();
   if(!name||!phone||!inviteePhone){msg.className='tatkal-msg err';msg.textContent='All fields are required.';return;}
+  if(!attendees||parseInt(attendees)<1){msg.className='tatkal-msg err';msg.textContent='Enter a valid number of people.';return;}
   btn.disabled=true;btn.textContent='Registering...';msg.className='tatkal-msg';msg.style.display='none';
   try{
     var r=await fetch('/api/tatkal-register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,phone:phone,attendees:parseInt(attendees),invitee_phone:inviteePhone})});
     var d=await r.json();
     if(d.status==='ok'){
-      msg.className='tatkal-msg ok';msg.textContent='Registered: '+d.name+' ('+d.attendees+' pass'+(d.attendees>1?'es':'')+') - Invitee: '+d.invitee_name;
-      document.getElementById('tkName').value='';document.getElementById('tkPhone').value='';document.getElementById('tkInviteePhone').value='';
+      msg.className='tatkal-msg ok';msg.textContent='Registered: '+d.name+' ('+d.attendees+' people) - Invitee: '+d.invitee_name;
+      document.getElementById('tkName').value='';document.getElementById('tkPhone').value='';document.getElementById('tkAttendees').value='1';document.getElementById('tkInviteePhone').value='';
       refreshStats();
     }else{msg.className='tatkal-msg err';msg.textContent=d.message||'Registration failed.';}
   }catch(e){msg.className='tatkal-msg err';msg.textContent='Network error. Try again.';}
@@ -648,7 +648,12 @@ body{
 }
 body::before{
   content:'';position:fixed;top:0;left:0;right:0;bottom:0;
-  background:radial-gradient(ellipse at 50% 30%,rgba(255,140,0,0.1) 0%,transparent 60%);
+  background:url('/static/wallpaper.jpg') center center/cover no-repeat;
+  pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(10,3,0,0.3);
   pointer-events:none;
 }
 .page{position:relative;z-index:1;width:100%;max-width:480px;}
@@ -771,8 +776,12 @@ body{
 }
 body::before{
   content:'';position:fixed;top:0;left:0;right:0;bottom:0;
-  background:radial-gradient(ellipse at 50% 20%,rgba(255,140,0,0.12) 0%,transparent 60%),
-             radial-gradient(ellipse at 80% 80%,rgba(139,26,26,0.1) 0%,transparent 50%);
+  background:url('/static/wallpaper.jpg') center center/cover no-repeat;
+  pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(10,3,0,0.3);
   pointer-events:none;
 }
 .page{position:relative;z-index:1;width:100%;max-width:560px;}
@@ -1081,8 +1090,12 @@ body{
 }
 body::before{
   content:'';position:fixed;top:0;left:0;right:0;bottom:0;
-  background:radial-gradient(ellipse at 50% 20%,rgba(16,185,80,0.08) 0%,transparent 50%),
-             radial-gradient(ellipse at 80% 80%,rgba(255,140,0,0.06) 0%,transparent 50%);
+  background:url('/static/wallpaper.jpg') center center/cover no-repeat;
+  pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(10,3,0,0.3);
   pointer-events:none;
 }
 .page{position:relative;z-index:1;width:100%;max-width:720px;}
@@ -1417,54 +1430,83 @@ body{
 .hero{
   position:relative;min-height:100vh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;text-align:center;padding:40px 20px;
-  background:radial-gradient(ellipse at 50% 30%,#3a1a00 0%,#1a0a00 70%);
   overflow:hidden;
 }
-.hero::before{
-  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
-  background:radial-gradient(circle at 50% 50%,rgba(255,165,0,0.06) 0%,transparent 50%);
-  animation:glow 8s ease-in-out infinite alternate;
+.hero-bg{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  background:url('/static/wallpaper.jpg') center center/cover no-repeat;
+  z-index:0;
 }
-@keyframes glow{0%{transform:scale(1);opacity:0.5;}100%{transform:scale(1.2);opacity:1;}}
-.diya-row{display:flex;gap:20px;margin-bottom:20px;position:relative;z-index:1;}
-.diya{font-size:2rem;animation:flicker 2s ease-in-out infinite alternate;}
-.diya:nth-child(2){animation-delay:0.5s;}
-.diya:nth-child(3){animation-delay:1s;}
-@keyframes flicker{0%{opacity:0.7;transform:scale(1);}100%{opacity:1;transform:scale(1.1);}}
-.om{
-  font-family:'Tiro Devanagari Hindi',serif;font-size:4rem;color:#FF8C00;
-  text-shadow:0 0 40px rgba(255,140,0,0.5),0 0 80px rgba(255,140,0,0.2);
-  margin-bottom:8px;position:relative;z-index:1;
+.hero-bg::after{
+  content:'';position:absolute;top:0;left:0;width:100%;height:100%;
+  background:rgba(10,3,0,0.3);
+}
+.pandit-container{
+  position:relative;z-index:1;margin-bottom:12px;
+}
+.pandit-img{
+  width:140px;height:140px;border-radius:50%;object-fit:cover;
+  border:3px solid rgba(255,215,0,0.6);
+  box-shadow:0 0 30px rgba(255,140,0,0.6),0 0 60px rgba(255,215,0,0.3),0 0 100px rgba(255,140,0,0.15);
+  animation:divineGlow 3s ease-in-out infinite alternate;
+}
+@keyframes divineGlow{
+  0%{box-shadow:0 0 30px rgba(255,140,0,0.6),0 0 60px rgba(255,215,0,0.3),0 0 100px rgba(255,140,0,0.15);}
+  100%{box-shadow:0 0 50px rgba(255,215,0,0.8),0 0 90px rgba(255,140,0,0.5),0 0 140px rgba(255,215,0,0.25);}
+}
+.divine-rays{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,215,0,0.3) 0%,rgba(255,140,0,0.1) 40%,transparent 70%);
+  animation:rayPulse 4s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+@keyframes rayPulse{
+  0%{transform:translate(-50%,-50%) scale(1);opacity:0.7;}
+  100%{transform:translate(-50%,-50%) scale(1.3);opacity:1;}
 }
 .hindi-title{
   font-family:'Tiro Devanagari Hindi',serif;font-size:2.4rem;
   color:#FFD700;line-height:1.3;margin-bottom:4px;position:relative;z-index:1;
-  text-shadow:0 2px 20px rgba(255,215,0,0.3);
+  text-shadow:0 2px 20px rgba(255,215,0,0.4);
 }
 .eng-title{
-  font-family:'Playfair Display',serif;font-size:1.6rem;color:rgba(255,255,255,0.85);
-  letter-spacing:3px;text-transform:uppercase;margin-bottom:20px;position:relative;z-index:1;
+  font-family:'Playfair Display',serif;font-size:1.6rem;color:rgba(255,255,255,0.9);
+  letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;position:relative;z-index:1;
+  text-shadow:0 1px 10px rgba(0,0,0,0.5);
+}
+.date-banner{
+  position:relative;z-index:1;margin-bottom:18px;
+  display:inline-block;padding:8px 24px;
+  background:linear-gradient(135deg,rgba(255,140,0,0.25),rgba(139,26,26,0.25));
+  border:1px solid rgba(255,215,0,0.35);border-radius:30px;
+  backdrop-filter:blur(10px);
+}
+.date-banner .date-text{
+  font-family:'Playfair Display',serif;font-size:1.05rem;color:#FFD700;
+  font-weight:700;letter-spacing:1px;
 }
 .divider{
-  width:120px;height:2px;margin:0 auto 24px;position:relative;z-index:1;
+  width:120px;height:2px;margin:0 auto 20px;position:relative;z-index:1;
   background:linear-gradient(90deg,transparent,#FF8C00,#FFD700,#FF8C00,transparent);
 }
 .verse{
   font-family:'Tiro Devanagari Hindi',serif;font-size:1.15rem;
-  color:rgba(255,215,0,0.7);max-width:500px;line-height:1.8;
+  color:rgba(255,215,0,0.8);max-width:500px;line-height:1.8;
   margin-bottom:28px;position:relative;z-index:1;font-style:italic;
 }
 .info-cards{
-  display:flex;flex-wrap:wrap;gap:14px;justify-content:center;
-  margin-bottom:32px;position:relative;z-index:1;max-width:520px;
+  display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:stretch;
+  margin-bottom:32px;position:relative;z-index:1;max-width:480px;width:100%;
 }
 .info-card{
-  background:rgba(255,255,255,0.06);border:1px solid rgba(255,165,0,0.25);
-  border-radius:14px;padding:16px 20px;flex:1;min-width:140px;
-  backdrop-filter:blur(8px);
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,165,0,0.3);
+  border-radius:14px;padding:18px 22px;flex:1;min-width:180px;
+  backdrop-filter:blur(12px);text-align:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
 }
-.info-card .icon{font-size:1.6rem;margin-bottom:6px;}
-.info-card .label{font-size:0.72rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.info-card .icon{font-size:1.6rem;margin-bottom:8px;}
+.info-card .label{font-size:0.72rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
 .info-card .value{font-size:0.95rem;color:#FFD700;font-weight:600;line-height:1.4;}
 .register-btn{
   display:inline-flex;align-items:center;gap:10px;
@@ -1479,7 +1521,7 @@ body{
 .register-btn .arrow{font-size:1.3rem;transition:transform 0.2s;}
 .register-btn:hover .arrow{transform:translateX(4px);}
 .footer-text{
-  margin-top:36px;font-size:0.78rem;color:rgba(255,255,255,0.3);
+  margin-top:36px;font-size:0.78rem;color:rgba(255,255,255,0.4);
   position:relative;z-index:1;letter-spacing:0.5px;
 }
 .lang-toggle{
@@ -1487,19 +1529,21 @@ body{
 }
 .lang-btn{
   padding:5px 14px;border:2px solid rgba(255,165,0,0.5);font-size:0.78rem;
-  font-weight:600;cursor:pointer;background:transparent;color:rgba(255,255,255,0.7);transition:all 0.2s;
+  font-weight:600;cursor:pointer;background:rgba(0,0,0,0.3);color:rgba(255,255,255,0.7);transition:all 0.2s;
 }
-.lang-btn.active{background:rgba(255,165,0,0.25);color:#FFD700;border-color:#FF8C00;}
+.lang-btn.active{background:rgba(255,165,0,0.3);color:#FFD700;border-color:#FF8C00;}
 .lang-btn:first-child{border-radius:20px 0 0 20px;}
 .lang-btn:last-child{border-radius:0 20px 20px 0;}
 @media(max-width:768px){
   .hero{padding:60px 16px 40px;}
   .hindi-title{font-size:2rem;}
   .eng-title{font-size:1.3rem;letter-spacing:2px;}
-  .om{font-size:3.2rem;}
+  .pandit-img{width:120px;height:120px;}
+  .divine-rays{width:170px;height:170px;}
+  .date-banner .date-text{font-size:0.95rem;}
   .verse{font-size:1rem;max-width:90vw;padding:0 8px;}
-  .info-cards{gap:10px;max-width:95vw;padding:0 4px;}
-  .info-card{min-width:120px;padding:14px 14px;}
+  .info-cards{gap:12px;max-width:95vw;padding:0 4px;}
+  .info-card{min-width:140px;padding:16px 16px;}
   .info-card .value{font-size:0.85rem;}
   .info-card .label{font-size:0.68rem;}
   .register-btn{padding:16px 36px;font-size:1.05rem;}
@@ -1508,14 +1552,15 @@ body{
 @media(max-width:480px){
   .hero{padding:56px 12px 32px;}
   .hindi-title{font-size:1.7rem;}
-  .eng-title{font-size:1.1rem;letter-spacing:1.5px;margin-bottom:14px;}
-  .om{font-size:2.8rem;}
-  .diya{font-size:1.6rem;}
-  .diya-row{gap:14px;margin-bottom:14px;}
+  .eng-title{font-size:1.1rem;letter-spacing:1.5px;margin-bottom:6px;}
+  .pandit-img{width:110px;height:110px;}
+  .divine-rays{width:150px;height:150px;}
+  .date-banner{padding:6px 18px;margin-bottom:14px;}
+  .date-banner .date-text{font-size:0.85rem;}
   .verse{font-size:0.9rem;line-height:1.6;margin-bottom:20px;}
-  .divider{width:80px;margin-bottom:18px;}
+  .divider{width:80px;margin-bottom:16px;}
   .info-cards{flex-direction:column;align-items:stretch;gap:10px;width:100%;}
-  .info-card{min-width:unset;display:flex;align-items:center;gap:12px;text-align:left;padding:12px 16px;}
+  .info-card{min-width:unset;display:flex;flex-direction:row;align-items:center;gap:12px;text-align:left;padding:12px 16px;}
   .info-card .icon{font-size:1.4rem;margin-bottom:0;flex-shrink:0;}
   .info-card .label{margin-bottom:2px;}
   .register-btn{padding:15px 28px;font-size:0.95rem;width:100%;justify-content:center;max-width:320px;}
@@ -1526,7 +1571,9 @@ body{
 @media(max-width:360px){
   .hindi-title{font-size:1.5rem;}
   .eng-title{font-size:1rem;}
-  .om{font-size:2.4rem;}
+  .pandit-img{width:100px;height:100px;}
+  .divine-rays{width:140px;height:140px;}
+  .date-banner .date-text{font-size:0.78rem;}
   .verse{font-size:0.82rem;}
   .register-btn{padding:14px 20px;font-size:0.88rem;}
   .info-card .value{font-size:0.8rem;}
@@ -1535,20 +1582,23 @@ body{
 </head>
 <body>
 <div class="hero">
+  <div class="hero-bg"></div>
   <div class="lang-toggle">
     <button class="lang-btn active" onclick="setLang('en')">English</button>
     <button class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
   </div>
 
-  <div class="diya-row">
-    <span class="diya">&#x1F6D5;</span>
-    <span class="diya">&#x1F52F;</span>
-    <span class="diya">&#x1F6D5;</span>
+  <div class="pandit-container">
+    <div class="divine-rays"></div>
+    <img src="/static/pandit.jpg" alt="Pandit Ji" class="pandit-img">
   </div>
-
-  <div class="om">&#x1F549;</div>
   <div class="hindi-title">श्रीमद् भागवत कथा</div>
   <div class="eng-title">Shrimad Bhagwat Katha</div>
+
+  <div class="date-banner">
+    <span class="date-text" data-en="9th June &ndash; 15th June 2026" data-hi="9 जून &ndash; 15 जून 2026">9th June &ndash; 15th June 2026</span>
+  </div>
+
   <div class="divider"></div>
 
   <div class="verse" data-en="Surrender unto the Lord with all your heart,<br>and He shall guide your path with His divine grace." data-hi="सर्वधर्मान्परित्यज्य मामेकं शरणं व्रज।<br>अहं त्वां सर्वपापेभ्यो मोक्षयिष्यामि मा शुचः॥">
@@ -1557,7 +1607,7 @@ body{
 
   <div class="info-cards">
     <div class="info-card">
-      <div class="icon">&#x1F4C5;</div>
+      <div class="icon">&#x1F552;</div>
       <div class="label" data-en="Timing" data-hi="समय">Timing</div>
       <div class="value" data-en="4:00 PM &ndash; 7:00 PM<br>Daily" data-hi="शाम 4:00 &ndash; 7:00 बजे<br>प्रतिदिन">4:00 PM &ndash; 7:00 PM<br>Daily</div>
     </div>
@@ -1565,11 +1615,6 @@ body{
       <div class="icon">&#x1F4CD;</div>
       <div class="label" data-en="Venue" data-hi="स्थान">Venue</div>
       <div class="value" data-en="Gate No 3<br>Shri Adya Katyayani<br>Shakti Peeth Mandir<br>Chhatarpur, New Delhi" data-hi="गेट नं. 3<br>श्री आद्य कात्यायनी<br>शक्ति पीठ मंदिर<br>छतरपुर, नई दिल्ली">Gate No 3<br>Shri Adya Katyayani<br>Shakti Peeth Mandir<br>Chhatarpur, New Delhi</div>
-    </div>
-    <div class="info-card">
-      <div class="icon">&#x1F64F;</div>
-      <div class="label" data-en="Entry" data-hi="प्रवेश">Entry</div>
-      <div class="value" data-en="Free Entry<br>with QR Pass" data-hi="निःशुल्क प्रवेश<br>QR पास के साथ">Free Entry<br>with QR Pass</div>
     </div>
   </div>
 
@@ -1752,8 +1797,12 @@ body{
 }
 body::before{
   content:'';position:fixed;top:0;left:0;right:0;bottom:0;
-  background:radial-gradient(ellipse at 50% 20%,rgba(255,140,0,0.12) 0%,transparent 60%),
-             radial-gradient(ellipse at 20% 80%,rgba(139,26,26,0.08) 0%,transparent 50%);
+  background:url('/static/wallpaper.jpg') center center/cover no-repeat;
+  pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(10,3,0,0.3);
   pointer-events:none;
 }
 .page{position:relative;z-index:1;width:100%;max-width:480px;}
@@ -1908,8 +1957,12 @@ body{
 }
 body::before{
   content:'';position:fixed;top:0;left:0;right:0;bottom:0;
-  background:radial-gradient(ellipse at 50% 20%,rgba(255,140,0,0.12) 0%,transparent 60%),
-             radial-gradient(ellipse at 80% 80%,rgba(139,26,26,0.1) 0%,transparent 50%);
+  background:url('/static/wallpaper.jpg') center center/cover no-repeat;
+  pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(10,3,0,0.3);
   pointer-events:none;
 }
 .page{position:relative;z-index:1;width:100%;max-width:560px;}
@@ -2178,7 +2231,12 @@ body{
 }
 body::before{
   content:'';position:fixed;top:0;left:0;right:0;bottom:0;
-  background:radial-gradient(ellipse at 50% 30%,rgba(255,140,0,0.1) 0%,transparent 60%);
+  background:url('/static/wallpaper.jpg') center center/cover no-repeat;
+  pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(10,3,0,0.3);
   pointer-events:none;
 }
 .page{position:relative;z-index:1;width:100%;max-width:480px;}
@@ -2362,7 +2420,7 @@ def cancel_registration():
 
 @app.route("/qr-image/<date_str>/<int:serial>")
 def serve_qr_image(date_str, serial):
-    if serial < 1 or serial > (REG_CAPACITY + TATKAL_CAPACITY):
+    if serial < 1:
         return "Not found", 404
     ticket_id = generate_ticket_id(date_str, serial)
     img_bytes = generate_qr_bytes(ticket_id)
@@ -2401,7 +2459,12 @@ body{
 }
 body::before{
   content:'';position:fixed;top:0;left:0;right:0;bottom:0;
-  background:radial-gradient(ellipse at 50% 20%,rgba(255,140,0,0.12) 0%,transparent 60%);
+  background:url('/static/wallpaper.jpg') center center/cover no-repeat;
+  pointer-events:none;
+}
+body::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(10,3,0,0.3);
   pointer-events:none;
 }
 .page{position:relative;z-index:1;max-width:800px;margin:0 auto;}
@@ -2552,10 +2615,11 @@ def checkin():
     if is_universal:
         reg_name = f"Universal Pass #{serial}"
         reg_phone = "—"
+        invitee_name = ""
     else:
-        reg_name, reg_phone = find_registration_by_ticket(date_str, ticket_id)
+        reg_name, reg_phone, invitee_name = find_registration_by_ticket(date_str, ticket_id)
 
-    sheet_append_checkin(date_str, serial_label, ticket_id, reg_name, reg_phone)
+    sheet_append_checkin(date_str, serial_label, ticket_id, reg_name, reg_phone, invitee_name)
     _append_scan_log(date_str, serial_label, reg_name, now_str, True)
 
     return jsonify({
@@ -2598,8 +2662,7 @@ def stats():
         "date": date_str,
         "reg_total": REG_CAPACITY, "reg_used": reg_checked,
         "reg_remaining": REG_CAPACITY - reg_checked,
-        "tatkal_total": TATKAL_CAPACITY, "tatkal_used": tatkal_checked,
-        "tatkal_remaining": TATKAL_CAPACITY - tatkal_checked,
+        "tatkal_used": tatkal_checked,
         "univ_total": UNIVERSAL_COUNT, "univ_used": univ_used,
         "univ_remaining": UNIVERSAL_COUNT - univ_used,
     })
@@ -2627,65 +2690,57 @@ def tatkal_register():
 
     invitee_name = PHONE_WHITELIST[invitee_phone]
 
-    if attendees < 1 or attendees > MAX_ATTENDEES:
-        return jsonify({"status": "error", "message": f"Attendees must be between 1 and {MAX_ATTENDEES}."})
+    if attendees < 1:
+        return jsonify({"status": "error", "message": "Number of people must be at least 1."})
 
     date_str = today_ist()
     registrations = load_registrations(date_str)
-
-    if phone in registrations:
-        return jsonify({"status": "error", "message": "This phone number is already registered today."})
-
-    spots_left = max(0, TOTAL_CAPACITY - total_attendees_registered(registrations))
-    if spots_left < attendees:
-        return jsonify({"status": "error", "message": f"Only {spots_left} spots left."})
-
-    available = get_next_available_tickets(attendees, date_str, registrations)
-    if len(available) < attendees:
-        return jsonify({"status": "error", "message": "Not enough passes available."})
-
-    tatkal_regs = {p: r for p, r in registrations.items() if r.get("type") == "tatkal"}
-    tatkal_count = sum(int(r["attendees"]) for r in tatkal_regs.values())
-    if tatkal_count + attendees > TATKAL_CAPACITY:
-        remaining = TATKAL_CAPACITY - tatkal_count
-        return jsonify({"status": "error", "message": f"Only {remaining} tatkal spots left."})
 
     tatkal_serial_start = REG_CAPACITY + 1
     used_serials = set()
     for r in registrations.values():
         for t in r.get("tickets", []):
             used_serials.add(t["serial"])
+
+    max_tatkal_serial = tatkal_serial_start
+    for s in used_serials:
+        if s >= tatkal_serial_start:
+            max_tatkal_serial = max(max_tatkal_serial, s + 1)
+
     tickets_data = []
-    for s in range(tatkal_serial_start, tatkal_serial_start + TATKAL_CAPACITY):
-        if len(tickets_data) >= attendees:
-            break
-        if s not in used_serials:
-            tid = generate_ticket_id(date_str, s)
-            tickets_data.append({"serial": s, "ticket_id": tid})
+    s = max_tatkal_serial
+    for _ in range(attendees):
+        while s in used_serials:
+            s += 1
+        tid = generate_ticket_id(date_str, s)
+        tickets_data.append({"serial": s, "ticket_id": tid})
+        used_serials.add(s)
+        s += 1
 
-    if len(tickets_data) < attendees:
-        return jsonify({"status": "error", "message": "Not enough tatkal passes available."})
-
-    registrations[phone] = {
-        "name": name, "attendees": attendees, "invitee_name": invitee_name,
+    reg_key = f"tatkal_{phone}_{now_ist().strftime('%H%M%S')}"
+    registrations[reg_key] = {
+        "name": name, "phone": phone, "attendees": attendees,
+        "invitee_name": invitee_name,
         "tickets": tickets_data, "type": "tatkal",
         "registered_at": now_ist().strftime("%Y-%m-%d %I:%M %p"),
     }
     save_registrations(date_str, registrations)
 
-    serials = [t["serial"] for t in tickets_data]
-    print(f"Tatkal registered: {name} ({phone}) -> {attendees} pass(es) [{date_str}]", flush=True)
-    sheet_append_registration(date_str, name, phone, attendees, invitee_name, serials)
+    print(f"Tatkal registered: {name} ({phone}) -> {attendees} people [{date_str}]", flush=True)
 
     now_str = now_ist().strftime("%I:%M %p")
     used_tickets = load_used_tickets(date_str)
-    for t in tickets_data:
+    for i, t in enumerate(tickets_data):
         tid = t["ticket_id"]
         serial_label = f"{t['serial']:03d}"
         used_tickets[tid] = {"serial": serial_label, "used_at": now_str, "serial_label": serial_label}
-        sheet_append_checkin(date_str, serial_label, tid, name, phone)
-        _append_scan_log(date_str, serial_label, name + " (Tatkal)", now_str, True)
+        person_label = f"{name} - Person {i+1}" if attendees > 1 else name
+        sheet_append_checkin(date_str, serial_label, tid, person_label + " (Tatkal)", phone, invitee_name)
+        _append_scan_log(date_str, serial_label, person_label + " (Tatkal)", now_str, True)
     save_used_tickets(date_str, used_tickets)
+
+    sheet_append_registration(date_str, name, phone, attendees, invitee_name,
+                              [t["serial"] for t in tickets_data])
 
     return jsonify({
         "status": "ok", "name": name, "attendees": attendees,
@@ -2700,7 +2755,7 @@ def api_registrations():
     return jsonify({
         "date": date_str, "total_registered": len(registrations),
         "total_capacity": TOTAL_CAPACITY, "reg_capacity": REG_CAPACITY,
-        "tatkal_capacity": TATKAL_CAPACITY, "registrations": registrations,
+        "tatkal_capacity": "unlimited", "registrations": registrations,
     })
 
 
