@@ -67,7 +67,7 @@ def get_valid_tickets_for_date(date_str):
         tickets[tid] = serial
     return tickets
 
-UNIVERSAL_COUNT = 50
+UNIVERSAL_COUNT = 51
 
 def generate_universal_ticket_id(serial):
     raw = f"UNIVERSAL-{serial:03d}-{TICKET_SECRET}"
