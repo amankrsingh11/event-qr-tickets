@@ -2100,6 +2100,29 @@ h1{font-family:'Playfair Display',serif;font-size:1.3rem;color:#FFD700;margin-bo
 .nav-links{display:flex;justify-content:center;gap:16px;margin-top:16px;}
 .nav-links a{font-size:0.82rem;color:rgba(255,215,0,0.6);text-decoration:none;transition:color 0.2s;}
 .nav-links a:hover{color:#FFD700;}
+.input-wrapper{position:relative;margin-bottom:18px;}
+.input-wrapper .phone-prefix{
+  position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  font-size:1rem;color:rgba(255,215,0,0.5);font-weight:600;pointer-events:none;
+}
+.input-wrapper input{
+  width:100%;padding:16px 16px 16px 52px;
+  border:2px solid rgba(255,165,0,0.2);border-radius:14px;
+  font-size:1.1rem;color:#fff;background:rgba(255,255,255,0.04);
+  outline:none;letter-spacing:2px;font-weight:500;transition:all 0.3s ease;
+}
+.input-wrapper input::placeholder{color:rgba(255,255,255,0.2);letter-spacing:1px;font-weight:400;}
+.input-wrapper input:focus{border-color:#FF8C00;background:rgba(255,255,255,0.07);box-shadow:0 0 0 3px rgba(255,140,0,0.1);}
+.lookup-btn{
+  width:100%;padding:14px;border:none;border-radius:14px;font-weight:700;font-size:0.95rem;
+  color:#fff;background:linear-gradient(135deg,#dc2626,#991b1b);cursor:pointer;
+  box-shadow:0 4px 16px rgba(220,38,38,0.3);transition:all 0.2s;
+}
+.lookup-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(220,38,38,0.4);}
+.error-msg{
+  background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);border-radius:12px;
+  padding:12px;margin-bottom:16px;font-size:0.85rem;color:#fca5a5;
+}
 @media(max-width:480px){.card{padding:28px 20px;}}
 </style>
 </head>
@@ -2136,9 +2159,20 @@ h1{font-family:'Playfair Display',serif;font-size:1.3rem;color:#FFD700;margin-bo
     </div>
   </form>
 {% else %}
-  <div class="icon">&#x2753;</div>
-  <h1 data-en="No Registration Found" data-hi="कोई पंजीकरण नहीं मिला">No Registration Found</h1>
-  <div class="nav-links">
+  <div class="icon">&#x274C;</div>
+  <h1 data-en="Cancel Registration" data-hi="पंजीकरण रद्द करें">Cancel Registration</h1>
+  <p style="font-size:0.88rem;color:rgba(255,255,255,0.5);margin-bottom:20px;line-height:1.5;" data-en="Enter your registered phone number to cancel your registration." data-hi="अपना पंजीकृत फ़ोन नंबर दर्ज करें।">Enter your registered phone number to cancel your registration.</p>
+  {% if error %}
+  <div class="error-msg">{{ error }}</div>
+  {% endif %}
+  <form method="GET" action="/cancel-registration">
+    <div class="input-wrapper">
+      <span class="phone-prefix">+91</span>
+      <input type="tel" name="phone" required placeholder="9876543210" pattern="[0-9]{10}" value="{{ phone or '' }}" autofocus>
+    </div>
+    <button type="submit" class="lookup-btn" data-en="&#x1F50D; Find Registration" data-hi="&#x1F50D; पंजीकरण खोजें">&#x1F50D; Find Registration</button>
+  </form>
+  <div class="nav-links" style="margin-top:20px;">
     <a href="/register" data-en="&#x1F4DD; Register" data-hi="&#x1F4DD; पंजीकरण">&#x1F4DD; Register</a>
     <a href="/" data-en="&#x1F3E0; Home" data-hi="&#x1F3E0; होम">&#x1F3E0; Home</a>
   </div>
@@ -2166,10 +2200,16 @@ def cancel_registration():
 
     if request.method == "GET":
         phone = request.args.get("phone", "").strip()
-        if not phone or phone not in registrations:
-            return render_template_string(CANCEL_HTML, reg=None, phone="", success=None)
+        if not phone:
+            return render_template_string(CANCEL_HTML, reg=None, phone="", success=None, error=None)
+        if len(phone) != 10 or not phone.isdigit():
+            return render_template_string(CANCEL_HTML, reg=None, phone=phone, success=None,
+                error="Please enter a valid 10-digit phone number.")
+        if phone not in registrations:
+            return render_template_string(CANCEL_HTML, reg=None, phone=phone, success=None,
+                error="No registration found for this phone number today.")
         reg = registrations[phone]
-        return render_template_string(CANCEL_HTML, reg=reg, phone=phone, success=None)
+        return render_template_string(CANCEL_HTML, reg=reg, phone=phone, success=None, error=None)
 
     phone = request.form.get("phone", "").strip()
     if phone not in registrations:
