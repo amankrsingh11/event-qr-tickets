@@ -38,6 +38,10 @@ PHONE_WHITELIST = {
     "9560817001": "Devesh Krishan Ji",
 }
 
+BLOCKED_SERIALS = {
+    "2026-06-09": {1, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23},
+}
+
 # ---------------------------------------------------------------------------
 # Time helpers (IST)
 # ---------------------------------------------------------------------------
@@ -280,14 +284,18 @@ def get_assigned_serials(registrations):
 def total_attendees_registered(registrations):
     return sum(int(r["attendees"]) for r in registrations.values())
 
-def reg_attendees_count(registrations):
-    return sum(int(r["attendees"]) for r in registrations.values() if r.get("type") != "tatkal")
+def reg_attendees_count(registrations, date_str=None):
+    count = sum(int(r["attendees"]) for r in registrations.values() if r.get("type") != "tatkal")
+    if date_str:
+        count += len(BLOCKED_SERIALS.get(date_str, set()))
+    return count
 
 def get_next_available_tickets(count, date_str, registrations):
     assigned = get_assigned_serials(registrations)
+    blocked = BLOCKED_SERIALS.get(date_str, set())
     tickets = []
     for serial in range(1, REG_CAPACITY + 1):
-        if serial not in assigned:
+        if serial not in assigned and serial not in blocked:
             tid = generate_ticket_id(date_str, serial)
             tickets.append((serial, tid))
             if len(tickets) >= count:
@@ -302,6 +310,14 @@ def find_registration_by_ticket(date_str, ticket_id):
                 invitee = reg.get("invitee_name", "")
                 actual_phone = reg.get("phone", phone)
                 return reg["name"], actual_phone, invitee
+    if date_str == "2026-06-09":
+        carryover_regs = load_registrations("2026-06-08")
+        for phone, reg in carryover_regs.items():
+            for t in reg.get("tickets", []):
+                if t["ticket_id"] == ticket_id:
+                    invitee = reg.get("invitee_name", "")
+                    actual_phone = reg.get("phone", phone)
+                    return reg["name"], actual_phone, invitee
     return "Unknown", "Unknown", ""
 
 
@@ -1731,7 +1747,7 @@ def register_form():
         return render_template_string(ALREADY_REGISTERED_HTML,
             name=reg["name"], attendees=reg["attendees"], phone=phone, date_str=date_str)
 
-    spots_left = max(0, REG_CAPACITY - reg_attendees_count(registrations))
+    spots_left = max(0, REG_CAPACITY - reg_attendees_count(registrations, date_str))
     resp = make_response(render_template_string(REGISTER_HTML,
         date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
         error=None, prev={"name": "", "phone": phone, "attendees": "", "invitee_phone": ""}))
@@ -1755,7 +1771,7 @@ def register_submit():
 
     prev = {"name": name, "phone": phone, "attendees": str(attendees), "invitee_phone": invitee_phone}
     registrations = load_registrations(date_str)
-    spots_left = max(0, REG_CAPACITY - reg_attendees_count(registrations))
+    spots_left = max(0, REG_CAPACITY - reg_attendees_count(registrations, date_str))
 
     if phone in registrations:
         reg = registrations[phone]
@@ -2231,7 +2247,7 @@ def update_registration():
 
     if new_attendees > old_attendees:
         extra_needed = new_attendees - old_attendees
-        spots_left = REG_CAPACITY - reg_attendees_count(registrations)
+        spots_left = REG_CAPACITY - reg_attendees_count(registrations, date_str)
         if spots_left < extra_needed:
             return render_template_string(UPDATE_HTML, reg=reg, phone=phone,
                 error=f"Only {spots_left} spots left. Cannot add {extra_needed} more.", success=None)
@@ -2637,6 +2653,12 @@ def checkin():
         serial_label = f"U-{serial:03d}"
     else:
         valid_tickets = get_valid_tickets_for_date(date_str)
+        if ticket_id not in valid_tickets and date_str in BLOCKED_SERIALS:
+            carryover_date = "2026-06-08" if date_str == "2026-06-09" else None
+            if carryover_date:
+                carryover_tickets = get_valid_tickets_for_date(carryover_date)
+                if ticket_id in carryover_tickets:
+                    valid_tickets[ticket_id] = carryover_tickets[ticket_id]
         if ticket_id not in valid_tickets:
             if ticket_id.startswith("SBK-") or ticket_id.startswith("EVT-"):
                 return jsonify({"status": "wrong_day", "message": "This ticket is not for today"})
@@ -2686,7 +2708,7 @@ def stats():
     registrations = load_registrations(date_str)
     used_tickets = load_used_tickets(date_str)
 
-    reg_att = reg_attendees_count(registrations)
+    reg_att = reg_attendees_count(registrations, date_str)
     tatkal_att = sum(int(r["attendees"]) for r in registrations.values() if r.get("type") == "tatkal")
     univ_used = sum(1 for k in used_tickets if k.startswith("SBK-UNIV-"))
 
