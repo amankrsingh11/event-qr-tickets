@@ -2816,6 +2816,9 @@ def cron_clear():
     if not USE_REDIS:
         return jsonify({"status": "skipped", "reason": "no redis"})
 
+    if today_ist() == "2026-06-09":
+        return jsonify({"status": "skipped", "reason": "carryover day, cron disabled"})
+
     r = _get_redis()
     keys = r.keys("*")
     deleted = []
