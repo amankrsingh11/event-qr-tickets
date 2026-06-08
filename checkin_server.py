@@ -1785,6 +1785,13 @@ def register_submit():
         return render_template_string(ALREADY_REGISTERED_HTML,
             name=reg["name"], attendees=reg["attendees"], phone=phone, date_str=date_str)
 
+    if date_str == "2026-06-09":
+        carryover_regs = load_registrations("2026-06-08")
+        if phone in carryover_regs:
+            reg = carryover_regs[phone]
+            return render_template_string(ALREADY_REGISTERED_HTML,
+                name=reg["name"], attendees=reg["attendees"], phone=phone, date_str="2026-06-08")
+
     if not name or not phone or not invitee_phone:
         return render_template_string(REGISTER_HTML,
             date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
