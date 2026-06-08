@@ -2476,6 +2476,13 @@ function setLang(lang){
 def cancel_registration():
     date_str = today_ist()
     registrations = load_registrations(date_str)
+    actual_date = date_str
+
+    if date_str == "2026-06-09":
+        carryover_regs = load_registrations("2026-06-08")
+        for p, r in carryover_regs.items():
+            if p not in registrations:
+                registrations[p] = r
 
     if request.method == "GET":
         phone = request.args.get("phone", "").strip()
@@ -2494,10 +2501,20 @@ def cancel_registration():
     if phone not in registrations:
         return render_template_string(CANCEL_HTML, reg=None, phone="", success=None)
 
-    reg = registrations.pop(phone)
-    save_registrations(date_str, registrations)
+    reg = registrations[phone]
+    today_regs = load_registrations(date_str)
+    if phone in today_regs:
+        today_regs.pop(phone)
+        save_registrations(date_str, today_regs)
+        actual_date = date_str
+    elif date_str == "2026-06-09":
+        co_regs = load_registrations("2026-06-08")
+        if phone in co_regs:
+            co_regs.pop(phone)
+            save_registrations("2026-06-08", co_regs)
+            actual_date = "2026-06-08"
     sheet_delete_registration(phone)
-    print(f"Cancelled registration: {reg['name']} ({phone}) [{date_str}]", flush=True)
+    print(f"Cancelled registration: {reg['name']} ({phone}) [{actual_date}]", flush=True)
 
     return render_template_string(CANCEL_HTML, reg=None, phone=phone,
         success=f"Registration for {reg['name']} (+91 {phone}) has been cancelled. {reg['attendees']} pass(es) released.")
