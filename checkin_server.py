@@ -1747,6 +1747,13 @@ def register_form():
         return render_template_string(ALREADY_REGISTERED_HTML,
             name=reg["name"], attendees=reg["attendees"], phone=phone, date_str=date_str)
 
+    if phone and date_str == "2026-06-09":
+        carryover_regs = load_registrations("2026-06-08")
+        if phone in carryover_regs:
+            reg = carryover_regs[phone]
+            return render_template_string(ALREADY_REGISTERED_HTML,
+                name=reg["name"], attendees=reg["attendees"], phone=phone, date_str="2026-06-08")
+
     spots_left = max(0, REG_CAPACITY - reg_attendees_count(registrations, date_str))
     resp = make_response(render_template_string(REGISTER_HTML,
         date_display=date_display, spots_left=spots_left, total=REG_CAPACITY,
@@ -2206,6 +2213,11 @@ def my_passes():
         return render_template_string(MY_PASSES_HTML, error="Please enter a valid 10-digit phone number.", phone=phone)
 
     registrations = load_registrations(date_str)
+    if phone not in registrations and date_str == "2026-06-09":
+        carryover_regs = load_registrations("2026-06-08")
+        if phone in carryover_regs:
+            registrations = carryover_regs
+            date_str = "2026-06-08"
     if phone not in registrations:
         return render_template_string(MY_PASSES_HTML, error="No registration found for this phone number today.", phone=phone)
 
@@ -2222,6 +2234,12 @@ def my_passes():
 def update_registration():
     date_str = today_ist()
     registrations = load_registrations(date_str)
+
+    if date_str == "2026-06-09":
+        carryover_regs = load_registrations("2026-06-08")
+        for p, r in carryover_regs.items():
+            if p not in registrations:
+                registrations[p] = r
 
     if request.method == "GET":
         phone = request.args.get("phone", "").strip()
