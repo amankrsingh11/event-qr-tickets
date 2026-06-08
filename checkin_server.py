@@ -53,8 +53,8 @@ def today_ist():
     return now_ist().strftime("%Y-%m-%d")
 
 def is_registration_open():
-    current_hour = now_ist().hour
-    return current_hour < 19
+    hour = now_ist().hour
+    return hour < 19  # Open 12 AM to 7 PM IST
 
 # ---------------------------------------------------------------------------
 # Daily ticket generation (deterministic per day + serial)
@@ -2880,9 +2880,6 @@ def cron_clear():
 
     if not USE_REDIS:
         return jsonify({"status": "skipped", "reason": "no redis"})
-
-    if today_ist() == "2026-06-09":
-        return jsonify({"status": "skipped", "reason": "carryover day, cron disabled"})
 
     r = _get_redis()
     keys = r.keys("*")
