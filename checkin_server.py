@@ -631,7 +631,7 @@ CLOSED_HTML = """
   <div class="om">&#x1F539;</div>
   <h1>Registration Closed</h1>
   <p>Same-day registration is only available between</p>
-  <div class="time-badge">8:00 AM &ndash; 2:00 PM IST</div>
+  <div class="time-badge">12:00 AM &ndash; 7:00 PM IST</div>
   <div class="venue">
     <strong>Katha Timing:</strong> 4:00 PM to 7:00 PM<br>
     <strong>Venue:</strong> Gate No 3, Shri Adya Katyayani Shakti Peeth Mandir, Chhatarpur, New Delhi
